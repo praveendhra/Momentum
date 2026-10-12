@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 /* Heatmap tooltip, restyled to match the app (overrides react-activity-calendar's default). */
-.react-activity-calendar__tooltip,
-.react-activity-calendar__tooltip[data-color-scheme='dark'] {
+html body .react-activity-calendar__tooltip,
+html body .react-activity-calendar__tooltip[data-color-scheme='dark'] {
   background-color: #0b1220;
   color: #e2e8f0;
   border: 1px solid #334155;
@@ -14,12 +14,12 @@
   box-shadow: 0 10px 30px rgb(0 0 0 / 0.45);
   z-index: 60;
 }
-.react-activity-calendar__tooltip::first-line {
+html body .react-activity-calendar__tooltip::first-line {
   font-weight: 600;
   color: #6ee7b7;
 }
-.react-activity-calendar__tooltip .react-activity-calendar__tooltip-arrow,
-.react-activity-calendar__tooltip[data-color-scheme='dark'] .react-activity-calendar__tooltip-arrow {
+html body .react-activity-calendar__tooltip .react-activity-calendar__tooltip-arrow,
+html body .react-activity-calendar__tooltip[data-color-scheme='dark'] .react-activity-calendar__tooltip-arrow {
   fill: #0b1220;
   stroke: #334155;
 }
