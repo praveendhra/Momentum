@@ -20,7 +20,10 @@ export default function Layout() {
       )}
       <header className="border-b border-slate-800 px-4 sm:px-6 py-3 flex items-center justify-between gap-4 sticky top-0 z-30 bg-slate-900/90 backdrop-blur">
         <div className="flex items-center gap-8">
-          <span className="text-xl font-bold text-emerald-400 tracking-tight">Momentum</span>
+          <span className="flex items-center gap-2">
+            <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" className="h-8 w-8" />
+            <span className="text-xl font-bold text-emerald-400 tracking-tight">Momentum</span>
+          </span>
           <nav className="hidden sm:flex gap-1">
             {NAV.map((n) => (
               <NavLink
