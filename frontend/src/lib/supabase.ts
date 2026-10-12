@@ -12,7 +12,11 @@ function looksConfigured(url?: string, key?: string): boolean {
  * (no VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY configured).
  */
 export const supabase: SupabaseClient | null = looksConfigured(supabaseUrl, supabaseAnonKey)
-  ? createClient(supabaseUrl!, supabaseAnonKey!)
+  ? createClient(supabaseUrl!, supabaseAnonKey!, {
+      // PKCE returns ?code=... in the query string, which leaves the HashRouter's
+      // #/route alone (the implicit flow would put tokens in the hash).
+      auth: { flowType: 'pkce', detectSessionInUrl: true, persistSession: true },
+    })
   : null
 
 export const authMode: 'supabase' | 'local' = supabase ? 'supabase' : 'local'
