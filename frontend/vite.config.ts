@@ -3,8 +3,12 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// GitHub Pages serves the site from /<repo>/. Override with BASE_PATH (e.g. "/") for other hosts.
+const base = process.env.BASE_PATH ?? '/Momentum/'
+
 // https://vite.dev/config/
 export default defineConfig({
+  base,
   plugins: [
     react(),
     tailwindcss(),
@@ -15,38 +19,22 @@ export default defineConfig({
         name: 'Momentum',
         short_name: 'Momentum',
         description: 'Track your daily self-improvement progress',
-        theme_color: '#10b981',
+        theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',
-        scope: '/',
-        start_url: '/',
+        scope: base,
+        start_url: base,
         icons: [
-          { src: '/pwa-192x192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png' },
-          { src: '/pwa-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: 'pwa-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'pwa-512x512.png', sizes: '512x512', type: 'image/png' },
+          { src: 'maskable-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/.*\/api\/v1\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 },
-            },
-          },
-        ],
+        // Supabase API calls must always hit the network (auth + fresh data).
+        navigateFallbackDenylist: [/^\/auth/],
       },
     }),
   ],
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
-        changeOrigin: true,
-      },
-    },
-  },
 })

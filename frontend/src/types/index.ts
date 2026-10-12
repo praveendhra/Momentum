@@ -73,7 +73,7 @@ export interface PersonalRecord {
   id: string
   activity_id: string
   activity_name: string
-  record_type: 'weight' | 'reps' | 'volume' | 'duration'
+  record_type: 'weight' | 'reps' | 'volume' | 'e1rm' | 'duration' | 'distance'
   value: number
   logged_date: string
 }
@@ -90,4 +90,45 @@ export interface CorrelationInsight {
   metric: string
   delta: number
   description: string
+}
+
+export interface LogCreated extends ActivityLog {
+  new_records: string[]
+}
+
+export type LogInput = {
+  activity_id: string
+  logged_date: string
+  duration_minutes?: number | null
+  quantity?: number | null
+  intensity?: number | null
+  quality?: number | null
+  difficulty?: number | null
+  mood_score?: number | null
+  notes?: string | null
+  extra_data?: Record<string, unknown> | null
+}
+
+export interface PresetActivity {
+  category_id: string
+  category_slug: CategorySlug
+  name: string
+  icon: string
+  color: string
+  unit: ActivityUnit
+  daily_target: number | null
+}
+
+export interface Correlations {
+  mood_days: number
+  required_days: number
+  insights: CorrelationInsight[]
+}
+
+export interface Profile {
+  id: string
+  display_name: string | null
+  username: string | null
+  avatar_url: string | null
+  timezone: string
 }

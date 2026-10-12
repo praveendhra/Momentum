@@ -1,4 +1,5 @@
-from datetime import date as date_type
+from datetime import date as date_type, timedelta
+from statistics import mean
 from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select, func, extract
@@ -6,15 +7,37 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import get_current_user_id
 from app.core.database import get_db
-from app.models import DailyStat, Streak, PersonalRecord, Activity, ActivityLog
+from app.models import ActivityCategory, DailyStat, Streak, PersonalRecord, Activity, ActivityLog
 from app.schemas.schemas import (
+    CorrelationInsightOut,
+    CorrelationsOut,
     DayActivityOut,
     StreakOut,
     PersonalRecordOut,
     DashboardSummaryOut,
 )
+from app.services.stats import graph_level_for, recompute_streak
+
+CORRELATION_MIN_DAYS = 14
+CORRELATION_MIN_GROUP = 3
+FACTOR_PHRASES = {
+    "workout": "a workout",
+    "habit": "keeping up your habits",
+    "skill": "skill practice",
+    "custom": "your custom activities",
+}
 
 router = APIRouter(prefix="/stats", tags=["stats"])
+
+
+async def _refresh_streaks(db: AsyncSession, uid: UUID) -> None:
+    """Streaks depend on today's date, so recompute them when they're read."""
+    activity_ids = (
+        await db.execute(select(func.distinct(ActivityLog.activity_id)).where(ActivityLog.user_id == uid))
+    ).scalars().all()
+    for aid in activity_ids:
+        await recompute_streak(db, uid, aid)
+    await db.commit()
 
 
 @router.get("/activity-graph", response_model=list[DayActivityOut])
@@ -47,13 +70,8 @@ async def activity_graph(
 
         result = await db.execute(stmt)
         rows = result.all()
-        max_count = max((r.count for r in rows), default=1)
         return [
-            DayActivityOut(
-                date=r.logged_date.isoformat(),
-                count=r.count,
-                level=min(4, int(r.count / max_count * 4)) if max_count > 0 else 0,
-            )
+            DayActivityOut(date=r.logged_date.isoformat(), count=r.count, level=graph_level_for(r.count))
             for r in rows
         ]
 
@@ -75,11 +93,13 @@ async def streaks(
     user_id: str = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
+    await _refresh_streaks(db, UUID(user_id))
     stmt = (
         select(Streak, Activity.name)
         .join(Activity, Streak.activity_id == Activity.id)
         .where(Streak.user_id == UUID(user_id))
     )
+    stmt = stmt.order_by(Streak.weekly_consistency_score.desc(), Activity.name)
     result = await db.execute(stmt)
     rows = result.all()
     return [
@@ -153,7 +173,8 @@ async def dashboard_summary(
     top_result = (await db.execute(stmt_top)).first()
     top_activity = top_result[0] if top_result else None
 
-    # Current longest streak
+    # Current longest streak (refreshed so a lapsed chain reads as 0, not stale)
+    await _refresh_streaks(db, uid)
     stmt_streak = (
         select(func.max(Streak.current_streak))
         .where(Streak.user_id == uid)
@@ -166,3 +187,57 @@ async def dashboard_summary(
         top_activity=top_activity,
         current_longest_streak=longest,
     )
+
+
+@router.get("/correlations", response_model=CorrelationsOut)
+async def correlations(
+    user_id: str = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    """Lag-1 insights: is mood higher on days after doing X?
+
+    Compares average mood on days that follow a day with a given category
+    logged vs. days that follow a day without it. Only surfaced once there are
+    enough mood days for the comparison to mean something.
+    """
+    uid = UUID(user_id)
+    rows = (
+        await db.execute(
+            select(DailyStat.date, DailyStat.mood_avg, DailyStat.categories_logged).where(DailyStat.user_id == uid)
+        )
+    ).all()
+    mood_by_day = {d: m for d, m, _ in rows if m is not None}
+    cats_by_day = {d: set(c or []) for d, _, c in rows}
+
+    if len(mood_by_day) < CORRELATION_MIN_DAYS:
+        return CorrelationsOut(mood_days=len(mood_by_day), required_days=CORRELATION_MIN_DAYS, insights=[])
+
+    names = dict(
+        (
+            await db.execute(select(ActivityCategory.slug, ActivityCategory.name).where(ActivityCategory.is_system == True))  # noqa: E712
+        ).all()
+    )
+
+    insights: list[CorrelationInsightOut] = []
+    for slug, name in names.items():
+        if slug == "mood":
+            continue
+        after, not_after = [], []
+        for day, mood in mood_by_day.items():
+            (after if slug in cats_by_day.get(day - timedelta(days=1), set()) else not_after).append(mood)
+        if len(after) < CORRELATION_MIN_GROUP or len(not_after) < CORRELATION_MIN_GROUP:
+            continue
+        delta = round(mean(after) - mean(not_after), 1)
+        if abs(delta) < 0.3:
+            continue
+        direction = "higher" if delta > 0 else "lower"
+        insights.append(
+            CorrelationInsightOut(
+                factor=slug,
+                metric="mood",
+                delta=delta,
+                description=f"On days after {FACTOR_PHRASES.get(slug, name.lower())}, your mood is {abs(delta):.1f} pts {direction}.",
+            )
+        )
+    insights.sort(key=lambda i: abs(i.delta), reverse=True)
+    return CorrelationsOut(mood_days=len(mood_by_day), required_days=CORRELATION_MIN_DAYS, insights=insights)

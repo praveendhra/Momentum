@@ -39,7 +39,7 @@ class ActivityCategory(Base):
     icon: Mapped[str] = mapped_column(String(50), default="📋")
     color: Mapped[str] = mapped_column(String(7), default="#10b981")
     is_system: Mapped[bool] = mapped_column(Boolean, default=False)
-    user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("profiles.id"))
+    user_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("profiles.id", ondelete="CASCADE"))
 
     activities: Mapped[list["Activity"]] = relationship(back_populates="category")
 
@@ -48,7 +48,7 @@ class Activity(Base):
     __tablename__ = "activities"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False)
     category_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("activity_categories.id"), nullable=False)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     icon: Mapped[str] = mapped_column(String(50), default="📋")
@@ -59,15 +59,17 @@ class Activity(Base):
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
 
     category: Mapped[ActivityCategory] = relationship(back_populates="activities")
-    logs: Mapped[list["ActivityLog"]] = relationship(back_populates="activity")
+    logs: Mapped[list["ActivityLog"]] = relationship(
+        back_populates="activity", cascade="all, delete-orphan", passive_deletes=True
+    )
 
 
 class ActivityLog(Base):
     __tablename__ = "activity_logs"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False, index=True)
-    activity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("activities.id"), nullable=False, index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    activity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("activities.id", ondelete="CASCADE"), nullable=False, index=True)
     logged_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
     duration_minutes: Mapped[float | None] = mapped_column(Float)
     quantity: Mapped[float | None] = mapped_column(Float)
@@ -85,7 +87,7 @@ class ActivityLog(Base):
 class DailyStat(Base):
     __tablename__ = "daily_stats"
 
-    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("profiles.id"), primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("profiles.id", ondelete="CASCADE"), primary_key=True)
     date: Mapped[date] = mapped_column(Date, primary_key=True)
     total_logs: Mapped[int] = mapped_column(Integer, default=0)
     total_duration_minutes: Mapped[float] = mapped_column(Float, default=0)
@@ -97,8 +99,8 @@ class DailyStat(Base):
 class Streak(Base):
     __tablename__ = "streaks"
 
-    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("profiles.id"), primary_key=True)
-    activity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("activities.id"), primary_key=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("profiles.id", ondelete="CASCADE"), primary_key=True)
+    activity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("activities.id", ondelete="CASCADE"), primary_key=True)
     current_streak: Mapped[int] = mapped_column(Integer, default=0)
     longest_streak: Mapped[int] = mapped_column(Integer, default=0)
     last_logged_date: Mapped[date | None] = mapped_column(Date)
@@ -109,9 +111,9 @@ class PersonalRecord(Base):
     __tablename__ = "personal_records"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False, index=True)
-    activity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("activities.id"), nullable=False)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("profiles.id", ondelete="CASCADE"), nullable=False, index=True)
+    activity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("activities.id", ondelete="CASCADE"), nullable=False)
     record_type: Mapped[str] = mapped_column(String(20), nullable=False)  # weight, reps, volume, duration
     value: Mapped[float] = mapped_column(Float, nullable=False)
     logged_date: Mapped[date] = mapped_column(Date, nullable=False)
-    log_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("activity_logs.id"))
+    log_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("activity_logs.id", ondelete="SET NULL"))

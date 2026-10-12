@@ -80,6 +80,11 @@ class LogOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class LogCreatedOut(LogOut):
+    # Record types (weight, reps, volume, e1rm, duration, distance) this log just set.
+    new_records: list[str] = []
+
+
 class LogCreate(BaseModel):
     activity_id: UUID
     logged_date: date
@@ -94,6 +99,7 @@ class LogCreate(BaseModel):
 
 
 class LogUpdate(BaseModel):
+    logged_date: date | None = None
     duration_minutes: float | None = None
     quantity: float | None = None
     intensity: int | None = Field(default=None, ge=1, le=10)
@@ -143,3 +149,53 @@ class CorrelationInsightOut(BaseModel):
     metric: str
     delta: float
     description: str
+
+
+class CorrelationsOut(BaseModel):
+    mood_days: int
+    required_days: int
+    insights: list[CorrelationInsightOut]
+
+
+# ─── Presets ───
+
+class PresetActivityOut(BaseModel):
+    category_id: UUID
+    category_slug: str
+    name: str
+    icon: str
+    color: str
+    unit: str
+    daily_target: float | None
+
+
+# ─── Profile / auth ───
+
+class ProfileOut(BaseModel):
+    id: UUID
+    display_name: str | None
+    username: str | None
+    avatar_url: str | None
+    timezone: str
+
+    model_config = {"from_attributes": True}
+
+
+class ProfileUpdate(BaseModel):
+    display_name: str | None = Field(default=None, max_length=100)
+    timezone: str | None = Field(default=None, max_length=50)
+
+
+class AuthConfigOut(BaseModel):
+    mode: str
+
+
+class DevLoginIn(BaseModel):
+    email: str = Field(min_length=3, max_length=254, pattern=r"^[^@\s]+@[^@\s]+$")
+
+
+class DevLoginOut(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user_id: UUID
+    email: str
