@@ -2,7 +2,7 @@
 
 Daily self-improvement tracker: log workouts, habits, skill practice and mood, and watch progress build up on a GitHub-style heatmap. Weekly consistency instead of punishing streaks, automatic personal records, and mood insights once you have two weeks of data.
 
-**Live:** https://praveendhra.github.io/Momentum/
+**Live:** https://momentum.praveendhra.com
 
 ## How it's hosted (all free tier)
 
@@ -19,7 +19,7 @@ There is no server to run. The browser talks to Supabase directly with the **pub
 cd frontend
 npm install
 cp .env.example .env.local   # fill in the Supabase URL + publishable key, or leave blank
-BASE_PATH=/ npm run dev
+npm run dev
 ```
 
 Without Supabase values the app runs in **local mode**: no sign-in, data saved in that browser's localStorage. Handy for UI work.

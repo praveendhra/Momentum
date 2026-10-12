@@ -3,8 +3,8 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
-// GitHub Pages serves the site from /<repo>/. Override with BASE_PATH (e.g. "/") for other hosts.
-const base = process.env.BASE_PATH ?? '/Momentum/'
+// Served from the root of momentum.praveendhra.com. Set BASE_PATH=/Momentum/ to serve from praveendhra.github.io/Momentum/ instead.
+const base = process.env.BASE_PATH ?? '/'
 
 // https://vite.dev/config/
 export default defineConfig({

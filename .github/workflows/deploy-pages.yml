@@ -27,7 +27,7 @@ jobs:
       VITE_SUPABASE_URL: https://qcyijvnkgdznekbzccgj.supabase.co
       VITE_SUPABASE_ANON_KEY: sb_publishable_HEkrpfICFy5oKMGnSplJ3A_ektg8yry
       VITE_AUTH_PROVIDERS: ${{ vars.VITE_AUTH_PROVIDERS }}
-      BASE_PATH: /${{ github.event.repository.name }}/
+      BASE_PATH: /
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -46,3 +46,4 @@ jobs:
           publish_dir: frontend/dist
           publish_branch: gh-pages
           force_orphan: true
+          cname: momentum.praveendhra.com
