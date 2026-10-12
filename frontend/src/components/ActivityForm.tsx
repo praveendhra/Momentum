@@ -4,6 +4,7 @@ import { btnGhost, btnPrimary, ErrorNote, Field, inputCls } from './ui'
 import type { Activity, ActivityUnit } from '../types'
 import { usePreferences } from '../hooks/usePreferences'
 import { fromDisplay, measureOf, toDisplay, unitLabel } from '../lib/units'
+import EmojiPicker from './EmojiPicker'
 
 const UNITS: { value: ActivityUnit; label: string }[] = [
   { value: 'minutes', label: 'Minutes' },
@@ -27,6 +28,7 @@ export default function ActivityForm({ existing, onDone }: { existing?: Activity
   const [name, setName] = useState(existing?.name ?? '')
   const [icon, setIcon] = useState(existing?.icon ?? '⚡')
   const [color, setColor] = useState(existing?.color ?? COLORS[0])
+  const [picking, setPicking] = useState(false)
   const [unit, setUnit] = useState<ActivityUnit>(existing?.unit ?? 'minutes')
   const [target, setTarget] = useState(
     existing?.daily_target != null
@@ -55,12 +57,16 @@ export default function ActivityForm({ existing, onDone }: { existing?: Activity
     <form onSubmit={submit} className="space-y-4">
       <div className="grid grid-cols-[4.5rem_1fr] gap-3">
         <Field label="Icon">
-          <input className={`${inputCls} text-center text-xl`} value={icon} maxLength={8} onChange={(e) => setIcon(e.target.value)} />
+          <button type="button" onClick={() => setPicking((p) => !p)} aria-expanded={picking} aria-label={`Choose icon, current ${icon || 'none'}`}
+            className={`${inputCls} text-center text-xl hover:border-emerald-500 ${picking ? '!border-emerald-500' : ''}`}>
+            {icon || '＋'}
+          </button>
         </Field>
         <Field label="Name">
           <input className={inputCls} required maxLength={100} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Stretching" />
         </Field>
       </div>
+      {picking && <EmojiPicker value={icon} onChange={setIcon} hint={name} onClose={() => setPicking(false)} />}
       {!existing && (
         <Field label="Category">
           <select className={inputCls} value={chosenCategory} onChange={(e) => setCategoryId(e.target.value)}>
