@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { store, type ActivityInput, type ActivityPatch, type LogFilters, type LogPatch } from '../lib/store'
 import { CATEGORIES, PRESETS } from '../lib/catalog'
 import * as stats from '../lib/stats'
+import { activityInsights } from '../lib/activityStats'
 import type { Activity, ActivityLog, LogCreated, LogInput } from '../types'
 
 export type { ActivityInput, LogFilters }
@@ -47,6 +48,7 @@ export const useSummary = () => useDerived(stats.summary)
 export const useStreaks = () => useDerived(stats.streaks)
 export const usePersonalRecords = () => useDerived(stats.personalRecords)
 export const useCorrelations = () => useDerived(stats.correlations)
+export const useActivityInsights = () => useDerived((l, a) => activityInsights(a, l, stats.personalRecords(l, a)))
 
 function useInvalidateLogs() {
   const qc = useQueryClient()
