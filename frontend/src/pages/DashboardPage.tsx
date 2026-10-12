@@ -17,6 +17,7 @@ import {
 import { Card, ErrorNote, Spinner, inputCls } from '../components/ui'
 import LogModal from '../components/LogModal'
 import DayDetailModal from '../components/DayDetailModal'
+import QuoteCard from '../components/QuoteCard'
 import { fmtRecord, localDate, RECORD_LABELS } from '../lib/format'
 import { fmt, measureOf, toDisplay, unitLabel } from '../lib/units'
 import { usePreferences } from '../hooks/usePreferences'
@@ -287,6 +288,7 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-5">
+      <QuoteCard />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatCard label="Active days" value={summary?.active_days_this_month ?? '—'} sub="this month" />
         <StatCard label="Sessions" value={summary?.total_sessions ?? '—'} sub="all time" />
