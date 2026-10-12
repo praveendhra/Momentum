@@ -2,21 +2,24 @@ import { useState, type FormEvent } from 'react'
 import { useCategories, useCreateActivity, useUpdateActivity } from '../hooks/queries'
 import { btnGhost, btnPrimary, ErrorNote, Field, inputCls } from './ui'
 import type { Activity, ActivityUnit } from '../types'
+import { usePreferences } from '../hooks/usePreferences'
+import { fromDisplay, measureOf, toDisplay, unitLabel } from '../lib/units'
 
 const UNITS: { value: ActivityUnit; label: string }[] = [
   { value: 'minutes', label: 'Minutes' },
   { value: 'boolean', label: 'Done / not done' },
   { value: 'count', label: 'Count' },
   { value: 'reps', label: 'Reps' },
-  { value: 'km', label: 'Kilometres' },
+  { value: 'km', label: 'Distance' },
   { value: 'pages', label: 'Pages' },
-  { value: 'liters', label: 'Litres' },
+  { value: 'liters', label: 'Volume (drinks)' },
 ]
 
 const COLORS = ['#10b981', '#3b82f6', '#a855f7', '#f59e0b', '#ef4444', '#ec4899', '#06b6d4', '#84cc16']
 
 export default function ActivityForm({ existing, onDone }: { existing?: Activity; onDone: () => void }) {
   const { data: categories } = useCategories()
+  const { prefs } = usePreferences()
   const create = useCreateActivity()
   const update = useUpdateActivity()
   const mutation = existing ? update : create
@@ -25,14 +28,21 @@ export default function ActivityForm({ existing, onDone }: { existing?: Activity
   const [icon, setIcon] = useState(existing?.icon ?? '⚡')
   const [color, setColor] = useState(existing?.color ?? COLORS[0])
   const [unit, setUnit] = useState<ActivityUnit>(existing?.unit ?? 'minutes')
-  const [target, setTarget] = useState(existing?.daily_target != null ? String(existing.daily_target) : '')
+  const [target, setTarget] = useState(
+    existing?.daily_target != null
+      ? String(Math.round(toDisplay(existing.daily_target, measureOf(existing.unit), prefs) * 100) / 100)
+      : '',
+  )
   const [categoryId, setCategoryId] = useState(existing?.category_id ?? '')
 
   const chosenCategory = categoryId || categories?.find((c) => c.slug === 'custom')?.id || categories?.[0]?.id || ''
 
   async function submit(e: FormEvent) {
     e.preventDefault()
-    const daily_target = target.trim() === '' || unit === 'boolean' ? null : Number(target)
+    const daily_target =
+      target.trim() === '' || unit === 'boolean' || !Number.isFinite(Number(target))
+        ? null
+        : Math.round(fromDisplay(Number(target), measureOf(unit), prefs) * 1000) / 1000
     if (existing) {
       await update.mutateAsync({ id: existing.id, name: name.trim(), icon, color, unit, daily_target })
     } else {
@@ -66,7 +76,7 @@ export default function ActivityForm({ existing, onDone }: { existing?: Activity
             {UNITS.map((u) => <option key={u.value} value={u.value}>{u.label}</option>)}
           </select>
         </Field>
-        <Field label="Daily goal" hint="optional">
+        <Field label="Daily goal" hint={unitLabel(unit, prefs) ? `in ${unitLabel(unit, prefs)}` : 'optional'}>
           <input inputMode="decimal" className={inputCls} disabled={unit === 'boolean'} value={unit === 'boolean' ? '' : target}
             onChange={(e) => setTarget(e.target.value)} />
         </Field>

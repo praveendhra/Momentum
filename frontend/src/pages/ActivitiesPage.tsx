@@ -4,11 +4,13 @@ import { Card, ErrorNote, Modal, Spinner, btnGhost, btnPrimary } from '../compon
 import ActivityForm from '../components/ActivityForm'
 import PresetPicker from '../components/PresetPicker'
 import SampleDataCard from '../components/SampleDataCard'
-import { fmtNum, UNIT_LABELS } from '../lib/format'
+import { fmtAmount } from '../lib/units'
+import { usePreferences } from '../hooks/usePreferences'
 import type { Activity } from '../types'
 
 export default function ActivitiesPage() {
   const { data: activities, isLoading, error } = useActivities()
+  const { prefs } = usePreferences()
   const { data: categories } = useCategories()
   const update = useUpdateActivity()
   const del = useDeleteActivity()
@@ -40,7 +42,7 @@ export default function ActivitiesPage() {
                   <p className="font-medium truncate">{a.name}</p>
                   <p className="text-xs text-slate-400">
                     {cat?.name ?? 'Custom'} · {a.unit === 'boolean' ? 'done / not done' : a.unit}
-                    {a.daily_target != null && ` · goal ${fmtNum(a.daily_target)} ${UNIT_LABELS[a.unit]}`}
+                    {a.daily_target != null && ` · goal ${fmtAmount(a.daily_target, a.unit, prefs)}`}
                     {!a.is_active && ' · archived'}
                   </p>
                 </div>

@@ -1,4 +1,6 @@
 import type { ActivityLog, ActivityUnit, PersonalRecord } from '../types'
+import type { Preferences } from './preferences'
+import { fmt, fmtAmount, fmtWeight, toDisplay, type Measure } from './units'
 
 /** YYYY-MM-DD in the user's local timezone (toISOString would use UTC). */
 export function localDate(d: Date = new Date()): string {
@@ -26,27 +28,17 @@ export function prettyDate(iso: string): string {
   })
 }
 
-export const UNIT_LABELS: Record<ActivityUnit, string> = {
-  minutes: 'min',
-  reps: 'reps',
-  km: 'km',
-  pages: 'pages',
-  liters: 'L',
-  count: '',
-  boolean: '',
-}
-
 export function fmtNum(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(1).replace(/\.0$/, '')
 }
 
-export function summarizeLog(log: ActivityLog, unit: ActivityUnit): string {
+export function summarizeLog(log: ActivityLog, unit: ActivityUnit, prefs: Preferences): string {
   const parts: string[] = []
   const sets = (log.extra_data?.sets as { reps: number; weight: number }[] | undefined) ?? []
   if (sets.length) {
-    parts.push(sets.map((s) => `${s.reps}×${fmtNum(s.weight)}`).join(', '))
+    parts.push(sets.map((s) => (s.weight ? `${s.reps}×${fmt(toDisplay(s.weight, 'weight', prefs))}` : `${s.reps} reps`)).join(', ') + ` ${prefs.weightUnit}`)
   }
-  if (log.quantity != null && unit !== 'minutes') parts.push(`${fmtNum(log.quantity)} ${UNIT_LABELS[unit]}`.trim())
+  if (log.quantity != null && unit !== 'minutes' && unit !== 'boolean') parts.push(fmtAmount(log.quantity, unit, prefs))
   if (log.duration_minutes != null) parts.push(`${fmtNum(log.duration_minutes)} min`)
   if (log.mood_score != null) parts.push(`mood ${log.mood_score}/10`)
   if (log.intensity != null) parts.push(`intensity ${log.intensity}/10`)
@@ -56,11 +48,18 @@ export function summarizeLog(log: ActivityLog, unit: ActivityUnit): string {
   return parts.join(' · ')
 }
 
-export const RECORD_LABELS: Record<PersonalRecord['record_type'], { label: string; unit: string }> = {
-  weight: { label: 'Heaviest set', unit: 'kg' },
-  reps: { label: 'Most reps', unit: 'reps' },
-  volume: { label: 'Session volume', unit: 'kg' },
-  e1rm: { label: 'Est. 1RM', unit: 'kg' },
-  duration: { label: 'Longest session', unit: 'min' },
-  distance: { label: 'Longest distance', unit: 'km' },
+export const RECORD_LABELS: Record<PersonalRecord['record_type'], { label: string; measure: Measure; unit?: string }> = {
+  weight: { label: 'Heaviest set', measure: 'weight' },
+  reps: { label: 'Most reps', measure: 'plain', unit: 'reps' },
+  volume: { label: 'Session volume', measure: 'weight' },
+  e1rm: { label: 'Est. 1RM', measure: 'weight' },
+  duration: { label: 'Longest session', measure: 'plain', unit: 'min' },
+  distance: { label: 'Longest distance', measure: 'distance' },
+}
+
+export function fmtRecord(pr: Pick<PersonalRecord, 'record_type' | 'value'>, prefs: Preferences): string {
+  const meta = RECORD_LABELS[pr.record_type]
+  if (meta.measure === 'weight') return fmtWeight(pr.value, prefs)
+  if (meta.measure === 'distance') return fmtAmount(pr.value, 'km', prefs)
+  return `${fmt(pr.value)} ${meta.unit ?? ''}`.trim()
 }

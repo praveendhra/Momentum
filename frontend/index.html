@@ -8,8 +8,17 @@
     <meta name="theme-color" content="#0f172a" />
     <meta name="description" content="Momentum: track workouts, habits, skills and mood with a GitHub-style progress graph." />
     <title>Momentum</title>
+    <script>
+      // Paint in the right theme before React loads (no dark→light flash).
+      try {
+        var t = localStorage.getItem('momentum.theme') || 'system'
+        if (t === 'system') t = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
+        document.documentElement.dataset.theme = t
+        document.documentElement.style.colorScheme = t
+      } catch (e) {}
+    </script>
   </head>
-  <body class="bg-slate-900">
+  <body class="bg-slate-900 text-white">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

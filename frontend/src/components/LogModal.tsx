@@ -1,11 +1,17 @@
 import { useState, type FormEvent } from 'react'
 import { Modal, Field, Scale, ErrorNote, inputCls, btnPrimary, btnGhost } from './ui'
 import { useCreateLog, useUpdateLog } from '../hooks/queries'
-import { localDate, UNIT_LABELS, fmtNum } from '../lib/format'
+import { localDate } from '../lib/format'
+import { usePreferences } from '../hooks/usePreferences'
+import { fmt, fromDisplay, measureOf, toDisplay, unitLabel as unitLabelFor } from '../lib/units'
 import type { Activity, ActivityLog, CategorySlug, LogCreated, LogInput, StrengthSet } from '../types'
 
 const MOOD_FACTORS = ['workout', 'sleep', 'social', 'work', 'diet', 'outdoors', 'illness'] as const
 const STRENGTH_RE = /strength|lift|weights?|squat|bench|deadlift|press|row|pull-?up|gym/i
+
+const round3 = (n: number) => Math.round(n * 1000) / 1000
+/** Show a stored metric value in the user's unit, without float noise. */
+const shown = (n: number) => String(Math.round(n * 100) / 100)
 
 function numOrNull(v: string): number | null {
   if (v.trim() === '') return null
@@ -22,6 +28,8 @@ interface Props {
 }
 
 export default function LogModal({ activity, categorySlug, existing, onClose, onLogged }: Props) {
+  const { prefs } = usePreferences()
+  const qtyMeasure = measureOf(activity.unit)
   const create = useCreateLog()
   const update = useUpdateLog()
   const extra = (existing?.extra_data ?? {}) as Record<string, unknown>
@@ -32,7 +40,9 @@ export default function LogModal({ activity, categorySlug, existing, onClose, on
 
   const [date, setDate] = useState(existing?.logged_date ?? localDate())
   const [duration, setDuration] = useState(existing?.duration_minutes != null ? String(existing.duration_minutes) : '')
-  const [quantity, setQuantity] = useState(existing?.quantity != null ? String(existing.quantity) : '')
+  const [quantity, setQuantity] = useState(
+    existing?.quantity != null ? shown(toDisplay(existing.quantity, qtyMeasure, prefs)) : '',
+  )
   const [intensity, setIntensity] = useState<number | null>(existing?.intensity ?? null)
   const [quality, setQuality] = useState<number | null>(existing?.quality ?? null)
   const [difficulty, setDifficulty] = useState<number | null>(existing?.difficulty ?? null)
@@ -44,18 +54,19 @@ export default function LogModal({ activity, categorySlug, existing, onClose, on
   const [useSets, setUseSets] = useState(strengthLike || Array.isArray(extra.sets))
   const [sets, setSets] = useState<{ reps: string; weight: string }[]>(
     Array.isArray(extra.sets) && (extra.sets as StrengthSet[]).length
-      ? (extra.sets as StrengthSet[]).map((s) => ({ reps: String(s.reps), weight: String(s.weight) }))
+      ? (extra.sets as StrengthSet[]).map((s) => ({ reps: String(s.reps), weight: s.weight ? shown(toDisplay(s.weight, 'weight', prefs)) : '' }))
       : [{ reps: '', weight: '' }],
   )
 
   const mutation = existing ? update : create
-  const unitLabel = UNIT_LABELS[activity.unit] || activity.unit
+  const unitLabel = unitLabelFor(activity.unit, prefs) || activity.unit
+  const goal = activity.daily_target != null ? `goal ${fmt(toDisplay(activity.daily_target, qtyMeasure, prefs))}` : undefined
 
   function buildPayload(): LogInput {
     const extra_data: Record<string, unknown> = {}
     if (useSets) {
       const clean = sets
-        .map((s) => ({ reps: numOrNull(s.reps), weight: numOrNull(s.weight) ?? 0 }))
+        .map((s) => ({ reps: numOrNull(s.reps), weight: round3(fromDisplay(numOrNull(s.weight) ?? 0, 'weight', prefs)) }))
         .filter((s): s is StrengthSet => s.reps !== null && s.reps > 0)
       if (clean.length) extra_data.sets = clean
     }
@@ -64,7 +75,8 @@ export default function LogModal({ activity, categorySlug, existing, onClose, on
       if (stress) extra_data.stress = stress
       if (factors.length) extra_data.factors = factors
     }
-    const qty = isMinutes || isBoolean ? null : numOrNull(quantity)
+    const typed = isMinutes || isBoolean ? null : numOrNull(quantity)
+    const qty = typed == null ? null : round3(fromDisplay(typed, qtyMeasure, prefs))
     return {
       activity_id: activity.id,
       logged_date: date,
@@ -112,7 +124,7 @@ export default function LogModal({ activity, categorySlug, existing, onClose, on
         {useSets && (
           <div className="space-y-2">
             <div className="grid grid-cols-[2rem_1fr_1fr_2rem] gap-2 text-xs text-slate-500 px-1">
-              <span>Set</span><span>Reps</span><span>Weight (kg)</span><span />
+              <span>Set</span><span>Reps</span><span>Weight ({prefs.weightUnit})</span><span />
             </div>
             {sets.map((s, i) => (
               <div key={i} className="grid grid-cols-[2rem_1fr_1fr_2rem] gap-2 items-center">
@@ -129,7 +141,7 @@ export default function LogModal({ activity, categorySlug, existing, onClose, on
             <div className="flex items-center justify-between">
               <button type="button" className="text-sm text-emerald-400 hover:text-emerald-300"
                 onClick={() => setSets([...sets, { ...sets[sets.length - 1] }])}>+ Add set</button>
-              {volume > 0 && <span className="text-xs text-slate-400">Volume: {fmtNum(volume)} kg</span>}
+              {volume > 0 && <span className="text-xs text-slate-400">Volume: {fmt(volume)} {prefs.weightUnit}</span>}
             </div>
           </div>
         )}
@@ -138,11 +150,11 @@ export default function LogModal({ activity, categorySlug, existing, onClose, on
           <div className="grid grid-cols-2 gap-3">
             {!isMinutes && (
               <Field label={activity.unit === 'count' ? 'Amount' : `Amount (${unitLabel})`}
-                hint={activity.daily_target ? `goal ${fmtNum(activity.daily_target)}` : undefined}>
+                hint={goal}>
                 <input inputMode="decimal" className={inputCls} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
               </Field>
             )}
-            <Field label="Duration (min)" hint={isMinutes && activity.daily_target ? `goal ${fmtNum(activity.daily_target)}` : undefined}>
+            <Field label="Duration (min)" hint={isMinutes ? goal : undefined}>
               <input inputMode="decimal" className={inputCls} value={duration} onChange={(e) => setDuration(e.target.value)} />
             </Field>
           </div>

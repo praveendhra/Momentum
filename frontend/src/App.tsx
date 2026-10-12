@@ -8,6 +8,7 @@ import AuthPage from './pages/AuthPage'
 import HistoryPage from './pages/HistoryPage'
 import ActivitiesPage from './pages/ActivitiesPage'
 import OnboardingPage from './pages/OnboardingPage'
+import SettingsPage from './pages/SettingsPage'
 
 function FullScreen({ children }: { children: React.ReactNode }) {
   return <div className="flex items-center justify-center min-h-screen bg-slate-900 px-6">{children}</div>
@@ -46,6 +47,7 @@ export default function App() {
             <Route index element={<DashboardPage />} />
             <Route path="history" element={<HistoryPage />} />
             <Route path="activities" element={<ActivitiesPage />} />
+            <Route path="settings" element={<SettingsPage />} />
           </Route>
         </Route>
       </Route>

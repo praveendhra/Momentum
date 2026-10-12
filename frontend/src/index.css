@@ -1,25 +1,79 @@
 @import "tailwindcss";
 
+/*
+ * Light theme.
+ * The UI is written with Tailwind's slate scale for a dark look. Tailwind v4
+ * exposes every palette colour as a CSS variable, so light mode remaps the
+ * scale (and the accent shades used for text) instead of duplicating classes:
+ * page bg slate-900 → near-white, cards slate-800 → white, white text → ink.
+ */
+:root[data-theme='light'] {
+  --color-white: #0f172a;
+  --color-slate-50: #020617;
+  --color-slate-100: #0f172a;
+  --color-slate-200: #1e293b;
+  --color-slate-300: #334155;
+  --color-slate-400: #55657a;
+  --color-slate-500: #6b7a90;
+  --color-slate-600: #cbd5e1;
+  --color-slate-700: #e2e8f0;
+  --color-slate-800: #ffffff;
+  --color-slate-900: #f4f6f9;
+  --color-slate-950: #ffffff;
+
+  /* Accent text needs more contrast on a light background. */
+  --color-emerald-300: #047857;
+  --color-emerald-400: #059669;
+  --color-amber-300: #b45309;
+  --color-amber-400: #d97706;
+  --color-rose-400: #e11d48;
+}
+
+:root {
+  --tooltip-bg: #0b1220;
+  --tooltip-fg: #e2e8f0;
+  --tooltip-border: #334155;
+  --tooltip-accent: #6ee7b7;
+  --tooltip-shadow: 0 10px 30px rgb(0 0 0 / 0.45);
+}
+
+:root[data-theme='light'] {
+  --tooltip-bg: #ffffff;
+  --tooltip-fg: #1e293b;
+  --tooltip-border: #e2e8f0;
+  --tooltip-accent: #047857;
+  --tooltip-shadow: 0 10px 30px rgb(15 23 42 / 0.15);
+}
+
+/* Cards get a hint of depth in light mode, where borders alone look flat. */
+:root[data-theme='light'] section.rounded-2xl {
+  box-shadow: 0 1px 2px rgb(15 23 42 / 0.04), 0 1px 3px rgb(15 23 42 / 0.06);
+}
+
+body {
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
 /* Heatmap tooltip, restyled to match the app (overrides react-activity-calendar's default). */
 html body .react-activity-calendar__tooltip,
-html body .react-activity-calendar__tooltip[data-color-scheme='dark'] {
-  background-color: #0b1220;
-  color: #e2e8f0;
-  border: 1px solid #334155;
+html body .react-activity-calendar__tooltip[data-color-scheme='dark'],
+html body .react-activity-calendar__tooltip[data-color-scheme='light'] {
+  background-color: var(--tooltip-bg);
+  color: var(--tooltip-fg);
+  border: 1px solid var(--tooltip-border);
   border-radius: 0.6rem;
   padding: 0.5rem 0.7rem;
   font-size: 12.5px;
   line-height: 1.55;
   white-space: pre-line;
-  box-shadow: 0 10px 30px rgb(0 0 0 / 0.45);
+  box-shadow: var(--tooltip-shadow);
   z-index: 60;
 }
 html body .react-activity-calendar__tooltip::first-line {
   font-weight: 600;
-  color: #6ee7b7;
+  color: var(--tooltip-accent);
 }
-html body .react-activity-calendar__tooltip .react-activity-calendar__tooltip-arrow,
-html body .react-activity-calendar__tooltip[data-color-scheme='dark'] .react-activity-calendar__tooltip-arrow {
-  fill: #0b1220;
-  stroke: #334155;
+html body .react-activity-calendar__tooltip .react-activity-calendar__tooltip-arrow {
+  fill: var(--tooltip-bg);
+  stroke: var(--tooltip-border);
 }

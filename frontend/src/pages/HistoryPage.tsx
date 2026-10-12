@@ -3,12 +3,14 @@ import { useActivities, useCategories, useDeleteLog, useLogs, type LogFilters } 
 import { Card, ErrorNote, Spinner, inputCls } from '../components/ui'
 import LogModal from '../components/LogModal'
 import { prettyDate, summarizeLog } from '../lib/format'
+import { usePreferences } from '../hooks/usePreferences'
 import type { ActivityLog } from '../types'
 
 const PAGE = 50
 
 export default function HistoryPage() {
   const { data: activities } = useActivities()
+  const { prefs } = usePreferences()
   const { data: categories } = useCategories()
   const [filters, setFilters] = useState<LogFilters>({})
   const [limit, setLimit] = useState(PAGE)
@@ -76,7 +78,7 @@ export default function HistoryPage() {
                     <div className="min-w-0 flex-1">
                       <p className="font-medium">{a?.name ?? 'Deleted activity'}</p>
                       <p className="text-sm text-slate-400 truncate">
-                        {a ? summarizeLog(log, a.unit) : ''}
+                        {a ? summarizeLog(log, a.unit, prefs) : ''}
                         {log.notes && <span className="text-slate-500"> · “{log.notes}”</span>}
                       </p>
                     </div>

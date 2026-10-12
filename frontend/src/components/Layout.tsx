@@ -5,6 +5,7 @@ const NAV = [
   { to: '/', label: 'Dashboard', icon: '▦', end: true },
   { to: '/history', label: 'History', icon: '☰', end: false },
   { to: '/activities', label: 'Activities', icon: '✦', end: false },
+  { to: '/settings', label: 'Settings', icon: '⚙', end: false },
 ]
 
 export default function Layout() {
@@ -49,7 +50,7 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      <nav className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900/95 backdrop-blur border-t border-slate-800 grid grid-cols-3">
+      <nav className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900/95 backdrop-blur border-t border-slate-800 grid grid-cols-4">
         {NAV.map((n) => (
           <NavLink
             key={n.to}

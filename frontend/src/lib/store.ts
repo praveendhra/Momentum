@@ -5,6 +5,7 @@
  */
 import { supabase } from './supabase'
 import type { Activity, ActivityLog, LogInput } from '../types'
+import { browserTimezone, withDefaults, type Settings } from './preferences'
 
 export interface LogFilters {
   activity_id?: string
@@ -32,6 +33,8 @@ export interface Store {
   createLogs(data: LogInput[]): Promise<number>
   /** Delete every log tagged extra_data.sample = true. Returns how many were removed. */
   deleteSampleLogs(): Promise<number>
+  getSettings(): Promise<Settings>
+  saveSettings(s: Settings): Promise<void>
 }
 
 const ACTIVITY_COLS = 'id,user_id,category_id,name,icon,color,unit,daily_target,is_active,sort_order'
@@ -96,6 +99,25 @@ function supabaseStore(): Store {
       }
       return data.length
     },
+    async getSettings() {
+      const { data: auth } = await sb.auth.getUser()
+      const uid = auth.user?.id
+      if (!uid) throw new Error('Not signed in')
+      const row = check(
+        await sb.from('profiles').select('preferences,timezone').eq('id', uid).maybeSingle(),
+      ) as { preferences: unknown; timezone: string | null } | null
+      return { preferences: withDefaults(row?.preferences), timezone: row?.timezone && row.timezone !== 'UTC' ? row.timezone : browserTimezone() }
+    },
+    async saveSettings(settings) {
+      const { data: auth } = await sb.auth.getUser()
+      const uid = auth.user?.id
+      if (!uid) throw new Error('Not signed in')
+      check(
+        await sb
+          .from('profiles')
+          .upsert({ id: uid, preferences: settings.preferences, timezone: settings.timezone }, { onConflict: 'id' }),
+      )
+    },
     async deleteSampleLogs() {
       const rows = check(
         await sb.from('activity_logs').delete().eq('extra_data->>sample', 'true').select('id'),
@@ -108,6 +130,7 @@ function supabaseStore(): Store {
 // ─── Local (browser) store ───
 
 const LOCAL_KEY = 'momentum.local.v1'
+const SETTINGS_KEY = 'momentum.local.settings'
 export const LOCAL_USER_ID = '00000000-0000-0000-0000-000000000000'
 
 interface LocalDb {
@@ -231,6 +254,21 @@ function localStore(): Store {
       }
       save(db)
       return data.length
+    },
+    async getSettings() {
+      try {
+        const raw = localStorage.getItem(SETTINGS_KEY)
+        if (raw) {
+          const parsed = JSON.parse(raw) as Partial<Settings>
+          return { preferences: withDefaults(parsed.preferences), timezone: parsed.timezone || browserTimezone() }
+        }
+      } catch {
+        /* fall through to defaults */
+      }
+      return { preferences: withDefaults({}), timezone: browserTimezone() }
+    },
+    async saveSettings(settings) {
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
     },
     async deleteSampleLogs() {
       const db = load()

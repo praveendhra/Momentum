@@ -16,10 +16,15 @@ import {
 } from '../hooks/queries'
 import { Card, ErrorNote, Spinner, inputCls } from '../components/ui'
 import LogModal from '../components/LogModal'
-import { fmtNum, localDate, RECORD_LABELS, UNIT_LABELS } from '../lib/format'
+import { fmtRecord, localDate, RECORD_LABELS } from '../lib/format'
+import { fmt, measureOf, toDisplay, unitLabel } from '../lib/units'
+import { usePreferences } from '../hooks/usePreferences'
 import type { Activity, CategorySlug, DayActivity, LogCreated } from '../types'
 
-const HEAT_THEME = { dark: ['#1e293b', '#065f46', '#047857', '#10b981', '#6ee7b7'] }
+const HEAT_THEME = {
+  dark: ['#1e293b', '#065f46', '#047857', '#10b981', '#6ee7b7'],
+  light: ['#e5e9f0', '#a7f3d0', '#6ee7b7', '#10b981', '#047857'],
+}
 
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
@@ -54,6 +59,7 @@ function padYear(year: number, data: DayActivity[]): DayActivity[] {
 function Heatmap() {
   const { data: activities } = useActivities()
   const { data: categories } = useCategories()
+  const { prefs, resolvedTheme } = usePreferences()
   const thisYear = new Date().getFullYear()
   const [year, setYear] = useState(thisYear)
   const [filter, setFilter] = useState('')
@@ -88,8 +94,9 @@ function Heatmap() {
         <ActivityCalendar
           data={padded}
           loading={isLoading}
-          colorScheme="dark"
+          colorScheme={resolvedTheme}
           theme={HEAT_THEME}
+          weekStart={prefs.weekStart}
           blockSize={12}
           blockMargin={3}
           fontSize={12}
@@ -102,7 +109,7 @@ function Heatmap() {
               hoverRestMs: 60,
             },
           }}
-          style={{ color: '#94a3b8' }}
+          style={{ color: resolvedTheme === 'light' ? '#64748b' : '#94a3b8' }}
         />
       </div>
     </Card>
@@ -115,6 +122,7 @@ function QuickLog({ onLogged }: { onLogged: (log: LogCreated, a: Activity) => vo
   const today = localDate()
   const { data: todayLogs } = useLogs({ date_from: today, date_to: today, limit: 200 })
   const create = useCreateLog()
+  const { prefs } = usePreferences()
   const [open, setOpen] = useState<Activity | null>(null)
 
   const slug = (a: Activity) => (categories?.find((c) => c.id === a.category_id)?.slug ?? 'custom') as CategorySlug
@@ -155,7 +163,7 @@ function QuickLog({ onLogged }: { onLogged: (log: LogCreated, a: Activity) => vo
               </div>
               <p className="text-xs text-slate-400 mt-1">
                 {a.daily_target
-                  ? `${fmtNum(p.total)} / ${fmtNum(a.daily_target)} ${UNIT_LABELS[a.unit]}`
+                  ? `${fmt(toDisplay(p.total, measureOf(a.unit), prefs))} / ${fmt(toDisplay(a.daily_target, measureOf(a.unit), prefs))} ${unitLabel(a.unit, prefs)}`.trim()
                   : p.done
                     ? `Logged${p.count > 1 ? ` ×${p.count}` : ''}`
                     : oneTap ? 'Tap to mark done' : 'Tap to log'}
@@ -199,6 +207,7 @@ function Streaks() {
 
 function Records() {
   const { data, isLoading } = usePersonalRecords()
+  const { prefs } = usePreferences()
   const top = data?.slice(0, 8)
   return (
     <Card title="Personal records">
@@ -213,7 +222,7 @@ function Records() {
                 <p className="truncate">{pr.activity_name}</p>
                 <p className="text-xs text-slate-500">{meta.label} · {pr.logged_date}</p>
               </div>
-              <span className="font-semibold text-emerald-300 whitespace-nowrap">{fmtNum(pr.value)} {meta.unit}</span>
+              <span className="font-semibold text-emerald-300 whitespace-nowrap">{fmtRecord(pr, prefs)}</span>
             </li>
           )
         })}

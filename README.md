@@ -24,6 +24,18 @@ npm run dev
 
 Without Supabase values the app runs in **local mode**: no sign-in, data saved in that browser's localStorage. Handy for UI work.
 
+## Settings
+
+Theme (light / dark / system), units (kg/lb, km/mi, L/fl oz), week start, time zone and email notifications live under **Settings** and are saved to `profiles.preferences`, so they follow you across devices. Everything is stored in metric; units only change what you see and type.
+
+## Email notifications
+
+- `supabase/functions/send-notifications`: Edge Function that sends a daily reminder (at your chosen hour, only if nothing was logged that day) and a Sunday 7 pm weekly summary, via [Resend](https://resend.com). `notification_log` makes every email send at most once.
+- `supabase/cron.sql`: hourly `pg_cron` job that calls the function.
+- Secrets (Supabase → Edge Functions → Secrets): `RESEND_API_KEY` (required), `RESEND_FROM` (optional; until a domain is verified in Resend, the default `onboarding@resend.dev` sender can only email the Resend account owner).
+- The function's "Verify JWT with legacy secret" setting must be **off** (the function authenticates test-email requests itself).
+- Redeploy after editing: paste `index.ts` into the function's Code tab in the dashboard, or `supabase functions deploy send-notifications --no-verify-jwt`.
+
 ## Database changes
 
 `supabase/schema.sql` is the source of truth and is safe to re-run. Paste it into Supabase → SQL Editor → Run after editing it.

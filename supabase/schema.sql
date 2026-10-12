@@ -151,3 +151,41 @@ insert into public.activity_categories (id, name, slug, icon, color, is_system, 
   ('a0000000-0000-0000-0000-000000000005', 'Custom',         'custom',  '⚡', '#10b981', true, null)
 on conflict (id) do update
   set name = excluded.name, slug = excluded.slug, icon = excluded.icon, color = excluded.color, is_system = true;
+
+-- ─── Preferences & notifications (added 2026-10-11) ───
+
+-- Per-user settings: theme, units, week start, notification choices.
+alter table public.profiles add column if not exists preferences jsonb not null default '{}'::jsonb;
+
+-- One row per email sent, so the hourly job never sends the same thing twice.
+create table if not exists public.notification_log (
+  user_id uuid not null references auth.users (id) on delete cascade,
+  kind text not null check (kind in ('daily_reminder', 'weekly_summary')),
+  sent_on date not null,
+  sent_at timestamptz not null default now(),
+  primary key (user_id, kind, sent_on)
+);
+alter table public.notification_log enable row level security;
+drop policy if exists "notification_log: read own" on public.notification_log;
+create policy "notification_log: read own" on public.notification_log
+  for select to authenticated using ((select auth.uid()) = user_id);
+revoke all on public.notification_log from anon;
+grant select on public.notification_log to authenticated;
+
+-- Everyone who opted into at least one email, with what the sender needs.
+-- security definer (reads auth.users) and callable by the service role only.
+create or replace function public.notification_targets()
+returns table (user_id uuid, email text, display_name text, timezone text, preferences jsonb)
+language sql stable security definer set search_path = public as $$
+  select p.id, u.email::text, p.display_name, p.timezone, p.preferences
+  from public.profiles p
+  join auth.users u on u.id = p.id
+  where u.email is not null
+    and u.email_confirmed_at is not null
+    and (
+      coalesce((p.preferences -> 'notifications' ->> 'dailyReminder')::boolean, false)
+      or coalesce((p.preferences -> 'notifications' ->> 'weeklySummary')::boolean, false)
+    );
+$$;
+revoke all on function public.notification_targets() from public, anon, authenticated;
+grant execute on function public.notification_targets() to service_role;
