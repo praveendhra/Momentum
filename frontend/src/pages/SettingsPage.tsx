@@ -6,6 +6,7 @@ import { browserTimezone, type Preferences } from '../lib/preferences'
 import { supabase } from '../lib/supabase'
 import TimezonePicker from '../components/TimezonePicker'
 import { zoneLabel } from '../lib/timezones'
+import InstallButton from '../components/InstallButton'
 
 function Segmented<T extends string | number>({
   value,
@@ -123,6 +124,11 @@ export default function SettingsPage() {
         </span>
       </div>
       <ErrorNote error={error} />
+
+      <Card title="Home screen app">
+        <p className="text-sm text-slate-400 mb-3">Add Momentum to your phone or desktop for one-tap logging, a full-screen view and faster loading.</p>
+        <InstallButton variant="card" />
+      </Card>
 
       <Card title="Appearance">
         <Row title="Theme" desc="System follows your device's light or dark setting.">

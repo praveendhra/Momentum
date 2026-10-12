@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import InstallButton from './InstallButton'
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: '▦', end: true },
@@ -40,6 +41,7 @@ export default function Layout() {
           </nav>
         </div>
         <div className="flex items-center gap-3 min-w-0">
+          <InstallButton />
           <span className="text-sm text-slate-400 truncate hidden md:inline">{user?.email}</span>
           {mode === 'supabase' && (
             <button onClick={signOut} className="text-sm text-slate-400 hover:text-white transition whitespace-nowrap">
