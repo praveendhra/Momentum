@@ -50,7 +50,10 @@ export default function ActivitiesPage() {
   const [showArchived, setShowArchived] = useState(false)
 
   const catById = new Map((categories ?? []).map((c) => [c.id, c]))
-  const active = (insights ?? []).filter((i) => i.activity.is_active)
+  // Most recently active first; activities never logged go last (in their saved order).
+  const byRecency = (a: { daysSinceLast: number | null }, b: { daysSinceLast: number | null }) =>
+    (a.daysSinceLast ?? Infinity) - (b.daysSinceLast ?? Infinity)
+  const active = (insights ?? []).filter((i) => i.activity.is_active).sort(byRecency)
   const archived = (insights ?? []).filter((i) => !i.activity.is_active)
 
   const sessions = active.reduce((a, i) => a + i.sessions, 0)
