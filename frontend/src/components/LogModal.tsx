@@ -23,11 +23,13 @@ interface Props {
   activity: Activity
   categorySlug: CategorySlug
   existing?: ActivityLog
+  /** Pre-fill the date for a new log (e.g. backfilling from the day view). */
+  defaultDate?: string
   onClose: () => void
   onLogged?: (log: LogCreated) => void
 }
 
-export default function LogModal({ activity, categorySlug, existing, onClose, onLogged }: Props) {
+export default function LogModal({ activity, categorySlug, existing, defaultDate, onClose, onLogged }: Props) {
   const { prefs } = usePreferences()
   const qtyMeasure = measureOf(activity.unit)
   const create = useCreateLog()
@@ -38,7 +40,7 @@ export default function LogModal({ activity, categorySlug, existing, onClose, on
   const isBoolean = activity.unit === 'boolean'
   const strengthLike = categorySlug === 'workout' && (STRENGTH_RE.test(activity.name) || activity.unit === 'reps')
 
-  const [date, setDate] = useState(existing?.logged_date ?? localDate())
+  const [date, setDate] = useState(existing?.logged_date ?? defaultDate ?? localDate())
   const [duration, setDuration] = useState(existing?.duration_minutes != null ? String(existing.duration_minutes) : '')
   const [quantity, setQuantity] = useState(
     existing?.quantity != null ? shown(toDisplay(existing.quantity, qtyMeasure, prefs)) : '',

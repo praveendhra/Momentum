@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { cloneElement, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ActivityCalendar } from 'react-activity-calendar'
 import 'react-activity-calendar/tooltips.css'
@@ -16,6 +16,7 @@ import {
 } from '../hooks/queries'
 import { Card, ErrorNote, Spinner, inputCls } from '../components/ui'
 import LogModal from '../components/LogModal'
+import DayDetailModal from '../components/DayDetailModal'
 import { fmtRecord, localDate, RECORD_LABELS } from '../lib/format'
 import { fmt, measureOf, toDisplay, unitLabel } from '../lib/units'
 import { usePreferences } from '../hooks/usePreferences'
@@ -68,6 +69,7 @@ function Heatmap() {
   const { data, isLoading, error } = useActivityGraph(graphFilter)
   const { data: breakdown } = useDayBreakdown(graphFilter)
   const padded = useMemo(() => padYear(year, data ?? []), [year, data])
+  const [openDay, setOpenDay] = useState<string | null>(null)
 
   return (
     <Card
@@ -110,8 +112,18 @@ function Heatmap() {
             },
           }}
           style={{ color: resolvedTheme === 'light' ? '#64748b' : '#94a3b8' }}
+          renderBlock={(block, activity) =>
+            cloneElement(block, {
+              onClick: () => setOpenDay(activity.date),
+              style: { ...(block.props.style ?? {}), cursor: 'pointer' },
+              role: 'button',
+              'aria-label': `${activity.count} sessions on ${activity.date}. Show details`,
+            })
+          }
         />
       </div>
+      <p className="text-xs text-slate-500 mt-2">Tip: click any day for details.</p>
+      {openDay && <DayDetailModal date={openDay} onClose={() => setOpenDay(null)} onChangeDate={setOpenDay} />}
     </Card>
   )
 }
