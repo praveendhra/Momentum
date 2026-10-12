@@ -1,32 +1,23 @@
-import { cloneElement, useMemo, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ActivityCalendar } from 'react-activity-calendar'
-import 'react-activity-calendar/tooltips.css'
 import {
   useActivities,
-  useActivityGraph,
   useCategories,
   useCorrelations,
   useCreateLog,
-  useDayBreakdown,
   useLogs,
   usePersonalRecords,
   useStreaks,
   useSummary,
 } from '../hooks/queries'
-import { Card, ErrorNote, Spinner, inputCls } from '../components/ui'
+import { Card, ErrorNote, Spinner } from '../components/ui'
 import LogModal from '../components/LogModal'
-import DayDetailModal from '../components/DayDetailModal'
 import QuoteCard from '../components/QuoteCard'
+import ActivityHeatmap from '../components/ActivityHeatmap'
 import { fmtRecord, localDate, RECORD_LABELS } from '../lib/format'
 import { fmt, measureOf, toDisplay, unitLabel } from '../lib/units'
 import { usePreferences } from '../hooks/usePreferences'
-import type { Activity, CategorySlug, DayActivity, LogCreated } from '../types'
-
-const HEAT_THEME = {
-  dark: ['#1e293b', '#065f46', '#047857', '#10b981', '#6ee7b7'],
-  light: ['#e5e9f0', '#a7f3d0', '#6ee7b7', '#10b981', '#047857'],
-}
+import type { Activity, CategorySlug, LogCreated } from '../types'
 
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
@@ -35,97 +26,6 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
       <p className="text-xl sm:text-2xl font-bold mt-1 truncate">{value}</p>
       {sub && <p className="text-xs text-slate-500 mt-0.5">{sub}</p>}
     </div>
-  )
-}
-
-function tooltipText(date: string, count: number, activities: string[]): string {
-  const [y, m, d] = date.split('-').map(Number)
-  const day = new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
-  if (!count) return `${day}\nNothing logged`
-  const shown = activities.slice(0, 4)
-  const more = activities.length - shown.length
-  return [`${day} · ${count} ${count === 1 ? 'session' : 'sessions'}`, ...shown, ...(more > 0 ? [`+${more} more`] : [])].join('\n')
-}
-
-/** Pad the year so the calendar always spans Jan 1 → today (or Dec 31). */
-function padYear(year: number, data: DayActivity[]): DayActivity[] {
-  const today = localDate()
-  const start = `${year}-01-01`
-  const end = String(year) === today.slice(0, 4) ? today : `${year}-12-31`
-  const out = data.filter((d) => d.date >= start && d.date <= end)
-  if (!out.length || out[0].date !== start) out.unshift({ date: start, count: 0, level: 0 })
-  if (out[out.length - 1].date !== end) out.push({ date: end, count: 0, level: 0 })
-  return out
-}
-
-function Heatmap() {
-  const { data: activities } = useActivities()
-  const { data: categories } = useCategories()
-  const { prefs, resolvedTheme } = usePreferences()
-  const thisYear = new Date().getFullYear()
-  const [year, setYear] = useState(thisYear)
-  const [filter, setFilter] = useState('')
-  const [kind, id] = filter.split(':')
-  const graphFilter = { year, activity_id: kind === 'a' ? id : undefined, category_id: kind === 'c' ? id : undefined }
-  const { data, isLoading, error } = useActivityGraph(graphFilter)
-  const { data: breakdown } = useDayBreakdown(graphFilter)
-  const padded = useMemo(() => padYear(year, data ?? []), [year, data])
-  const [openDay, setOpenDay] = useState<string | null>(null)
-
-  return (
-    <Card
-      title="Activity"
-      action={
-        <div className="flex gap-2">
-          <select aria-label="Filter heatmap" className={`${inputCls} !py-1 text-sm max-w-44`} value={filter} onChange={(e) => setFilter(e.target.value)}>
-            <option value="">Everything</option>
-            <optgroup label="Categories">
-              {categories?.map((c) => <option key={c.id} value={`c:${c.id}`}>{c.icon} {c.name}</option>)}
-            </optgroup>
-            <optgroup label="Activities">
-              {activities?.map((a) => <option key={a.id} value={`a:${a.id}`}>{a.icon} {a.name}</option>)}
-            </optgroup>
-          </select>
-          <select aria-label="Year" className={`${inputCls} !py-1 text-sm w-24`} value={year} onChange={(e) => setYear(Number(e.target.value))}>
-            {[thisYear, thisYear - 1, thisYear - 2].map((y) => <option key={y} value={y}>{y}</option>)}
-          </select>
-        </div>
-      }
-    >
-      <ErrorNote error={error} />
-      <div className="overflow-x-auto">
-        <ActivityCalendar
-          data={padded}
-          loading={isLoading}
-          colorScheme={resolvedTheme}
-          theme={HEAT_THEME}
-          weekStart={prefs.weekStart}
-          blockSize={12}
-          blockMargin={3}
-          fontSize={12}
-          labels={{ totalCount: `{{count}} sessions in ${year}` }}
-          tooltips={{
-            activity: {
-              text: (a) => tooltipText(a.date, a.count, breakdown?.[a.date] ?? []),
-              placement: 'top',
-              withArrow: true,
-              hoverRestMs: 60,
-            },
-          }}
-          style={{ color: resolvedTheme === 'light' ? '#64748b' : '#94a3b8' }}
-          renderBlock={(block, activity) =>
-            cloneElement(block, {
-              onClick: () => setOpenDay(activity.date),
-              style: { ...(block.props.style ?? {}), cursor: 'pointer' },
-              role: 'button',
-              'aria-label': `${activity.count} sessions on ${activity.date}. Show details`,
-            })
-          }
-        />
-      </div>
-      <p className="text-xs text-slate-500 mt-2">Tip: click any day for details.</p>
-      {openDay && <DayDetailModal date={openDay} onClose={() => setOpenDay(null)} onChangeDate={setOpenDay} />}
-    </Card>
   )
 }
 
@@ -297,7 +197,7 @@ export default function DashboardPage() {
       </div>
 
       <QuickLog onLogged={onLogged} />
-      <Heatmap />
+      <ActivityHeatmap />
 
       <div className="grid md:grid-cols-2 gap-5">
         <Streaks />
