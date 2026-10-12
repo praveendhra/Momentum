@@ -15,16 +15,16 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!supabase) return
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session ? { id: session.user.id, email: session.user.email ?? null } : null)
-      setLoading(false)
-    })
+    // INITIAL_SESSION fires once the stored session has been restored (and, if
+    // needed, refreshed). Treating auth as "loading" until then avoids briefly
+    // showing the sign-in page to someone who is actually signed in.
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') setRecovering(true)
       setUser((prev) => {
         const next = session ? { id: session.user.id, email: session.user.email ?? null } : null
         return prev?.id === next?.id ? prev : next
       })
+      if (event === 'INITIAL_SESSION') setLoading(false)
     })
     return () => data.subscription.unsubscribe()
   }, [])
