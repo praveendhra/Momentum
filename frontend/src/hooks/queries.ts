@@ -42,6 +42,7 @@ function useDerived<T>(fn: (logs: ActivityLog[], acts: Activity[]) => T) {
 }
 
 export const useActivityGraph = (f: GraphFilters) => useDerived((l, a) => stats.activityGraph(l, a, f))
+export const useDayBreakdown = (f: GraphFilters) => useDerived((l, a) => stats.dayBreakdown(l, a, f))
 export const useSummary = () => useDerived(stats.summary)
 export const useStreaks = () => useDerived(stats.streaks)
 export const usePersonalRecords = () => useDerived(stats.personalRecords)

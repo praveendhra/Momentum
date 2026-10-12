@@ -45,6 +45,27 @@ export function activityGraph(
     .map(([date, count]) => ({ date, count, level: graphLevel(count) }))
 }
 
+/** date → activities logged that day (icon + name, de-duplicated), with the same filters as the graph. */
+export function dayBreakdown(
+  logs: ActivityLog[],
+  activities: Activity[],
+  f: { year?: number; activity_id?: string; category_id?: string },
+): Record<string, string[]> {
+  const byId = new Map(activities.map((a) => [a.id, a]))
+  const out: Record<string, string[]> = {}
+  for (const l of logs) {
+    const a = byId.get(l.activity_id)
+    if (!a) continue
+    if (f.year && !l.logged_date.startsWith(String(f.year))) continue
+    if (f.activity_id && l.activity_id !== f.activity_id) continue
+    if (f.category_id && a.category_id !== f.category_id) continue
+    const label = `${a.icon} ${a.name}`
+    const list = (out[l.logged_date] ??= [])
+    if (!list.includes(label)) list.push(label)
+  }
+  return out
+}
+
 /** Daily chain + weekly consistency (days logged in the last 7 / 7). */
 export function computeStreak(days: string[], today = localDate()): { current: number; longest: number; weekly: number } {
   const uniq = [...new Set(days)].sort()

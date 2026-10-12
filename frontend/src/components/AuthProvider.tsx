@@ -29,10 +29,13 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     return () => data.subscription.unsubscribe()
   }, [])
 
-  // Never show one account's cached data to the next.
+  // Never show one account's cached data to the next. Switching accounts always
+  // passes through "signed out", and nothing data-bound is mounted then, so
+  // clearing at that moment is safe. (Clearing on sign-in would wipe queries
+  // the dashboard has just started and leave it loading forever.)
   useEffect(() => {
-    queryClient.clear()
-  }, [user?.id, queryClient])
+    if (!user) queryClient.clear()
+  }, [user, queryClient])
 
   const value = useMemo(
     () => ({

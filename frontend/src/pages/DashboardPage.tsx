@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ActivityCalendar } from 'react-activity-calendar'
+import 'react-activity-calendar/tooltips.css'
 import {
   useActivities,
   useActivityGraph,
   useCategories,
   useCorrelations,
   useCreateLog,
+  useDayBreakdown,
   useLogs,
   usePersonalRecords,
   useStreaks,
@@ -29,6 +31,15 @@ function StatCard({ label, value, sub }: { label: string; value: string | number
   )
 }
 
+function tooltipText(date: string, count: number, activities: string[]): string {
+  const [y, m, d] = date.split('-').map(Number)
+  const day = new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })
+  if (!count) return `${day}\nNothing logged`
+  const shown = activities.slice(0, 4)
+  const more = activities.length - shown.length
+  return [`${day} · ${count} ${count === 1 ? 'session' : 'sessions'}`, ...shown, ...(more > 0 ? [`+${more} more`] : [])].join('\n')
+}
+
 /** Pad the year so the calendar always spans Jan 1 → today (or Dec 31). */
 function padYear(year: number, data: DayActivity[]): DayActivity[] {
   const today = localDate()
@@ -47,11 +58,9 @@ function Heatmap() {
   const [year, setYear] = useState(thisYear)
   const [filter, setFilter] = useState('')
   const [kind, id] = filter.split(':')
-  const { data, isLoading, error } = useActivityGraph({
-    year,
-    activity_id: kind === 'a' ? id : undefined,
-    category_id: kind === 'c' ? id : undefined,
-  })
+  const graphFilter = { year, activity_id: kind === 'a' ? id : undefined, category_id: kind === 'c' ? id : undefined }
+  const { data, isLoading, error } = useActivityGraph(graphFilter)
+  const { data: breakdown } = useDayBreakdown(graphFilter)
   const padded = useMemo(() => padYear(year, data ?? []), [year, data])
 
   return (
@@ -85,7 +94,14 @@ function Heatmap() {
           blockMargin={3}
           fontSize={12}
           labels={{ totalCount: `{{count}} sessions in ${year}` }}
-          tooltips={{ activity: { text: (a) => `${a.count} ${a.count === 1 ? 'session' : 'sessions'} on ${a.date}` } }}
+          tooltips={{
+            activity: {
+              text: (a) => tooltipText(a.date, a.count, breakdown?.[a.date] ?? []),
+              placement: 'top',
+              withArrow: true,
+              hoverRestMs: 60,
+            },
+          }}
           style={{ color: '#94a3b8' }}
         />
       </div>
