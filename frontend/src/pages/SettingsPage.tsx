@@ -4,6 +4,8 @@ import { useAuth } from '../hooks/useAuth'
 import { Card, ErrorNote, inputCls } from '../components/ui'
 import { browserTimezone, type Preferences } from '../lib/preferences'
 import { supabase } from '../lib/supabase'
+import TimezonePicker from '../components/TimezonePicker'
+import { zoneLabel } from '../lib/timezones'
 
 function Segmented<T extends string | number>({
   value,
@@ -64,14 +66,6 @@ function Toggle({ checked, onChange, label, disabled }: { checked: boolean; onCh
   )
 }
 
-const ALL_ZONES: string[] = (() => {
-  try {
-    return (Intl as unknown as { supportedValuesOf?: (k: string) => string[] }).supportedValuesOf?.('timeZone') ?? []
-  } catch {
-    return []
-  }
-})()
-
 const hourLabel = (h: number) =>
   new Date(2000, 0, 1, h).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
 
@@ -80,8 +74,6 @@ export default function SettingsPage() {
   const { user, mode, signOut } = useAuth()
   const [error, setError] = useState<unknown>(null)
   const [savedAt, setSavedAt] = useState<number | null>(null)
-
-  const zones = ALL_ZONES.includes(timezone) ? ALL_ZONES : [timezone, ...ALL_ZONES]
 
   async function update(patch: Partial<Preferences>, tz = timezone) {
     setError(null)
@@ -197,15 +189,12 @@ export default function SettingsPage() {
             title="Time zone"
             desc={timezone !== deviceTz ? (
               <>
-                This device is on {deviceTz}.{' '}
+                This device is on {zoneLabel(deviceTz)}.{' '}
                 <button className="text-emerald-400 hover:underline" onClick={() => update({}, deviceTz)}>Use it</button>
               </>
             ) : 'Used to send emails at your local time.'}
           >
-            <select aria-label="Time zone" className={`${inputCls} !w-auto max-w-64 !py-1.5`} value={timezone}
-              onChange={(e) => update({}, e.target.value)}>
-              {zones.map((z) => <option key={z} value={z}>{z.replace(/_/g, ' ')}</option>)}
-            </select>
+            <TimezonePicker value={timezone} onChange={(tz) => update({}, tz)} />
           </Row>
         </div>
         {!emailOff && (
