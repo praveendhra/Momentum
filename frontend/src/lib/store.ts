@@ -28,6 +28,10 @@ export interface Store {
   createLog(data: LogInput): Promise<ActivityLog>
   updateLog(id: string, patch: LogPatch): Promise<ActivityLog>
   deleteLog(id: string): Promise<void>
+  /** Insert many logs at once (used by the sample-data loader). */
+  createLogs(data: LogInput[]): Promise<number>
+  /** Delete every log tagged extra_data.sample = true. Returns how many were removed. */
+  deleteSampleLogs(): Promise<number>
 }
 
 const ACTIVITY_COLS = 'id,user_id,category_id,name,icon,color,unit,daily_target,is_active,sort_order'
@@ -84,6 +88,19 @@ function supabaseStore(): Store {
     },
     async deleteLog(id) {
       check(await sb.from('activity_logs').delete().eq('id', id))
+    },
+    async createLogs(data) {
+      const chunk = 500
+      for (let i = 0; i < data.length; i += chunk) {
+        check(await sb.from('activity_logs').insert(data.slice(i, i + chunk)))
+      }
+      return data.length
+    },
+    async deleteSampleLogs() {
+      const rows = check(
+        await sb.from('activity_logs').delete().eq('extra_data->>sample', 'true').select('id'),
+      ) as { id: string }[]
+      return rows.length
     },
   }
 }
@@ -198,6 +215,29 @@ function localStore(): Store {
       const db = load()
       db.logs = db.logs.filter((x) => x.id !== id)
       save(db)
+    },
+    async createLogs(data) {
+      const db = load()
+      const now = new Date().toISOString()
+      for (const d of data) {
+        db.logs.push({
+          duration_minutes: null, quantity: null, intensity: null, quality: null, difficulty: null,
+          mood_score: null, notes: null, extra_data: null,
+          ...d,
+          id: uuid(),
+          user_id: LOCAL_USER_ID,
+          created_at: now,
+        })
+      }
+      save(db)
+      return data.length
+    },
+    async deleteSampleLogs() {
+      const db = load()
+      const before = db.logs.length
+      db.logs = db.logs.filter((l) => l.extra_data?.sample !== true)
+      save(db)
+      return before - db.logs.length
     },
   }
 }

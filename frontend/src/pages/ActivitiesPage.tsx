@@ -3,6 +3,7 @@ import { useActivities, useCategories, useDeleteActivity, useUpdateActivity } fr
 import { Card, ErrorNote, Modal, Spinner, btnGhost, btnPrimary } from '../components/ui'
 import ActivityForm from '../components/ActivityForm'
 import PresetPicker from '../components/PresetPicker'
+import SampleDataCard from '../components/SampleDataCard'
 import { fmtNum, UNIT_LABELS } from '../lib/format'
 import type { Activity } from '../types'
 
@@ -60,6 +61,8 @@ export default function ActivitiesPage() {
       <Card title="Add from presets">
         <PresetPicker />
       </Card>
+
+      <SampleDataCard />
 
       <Modal open={creating} onClose={() => setCreating(false)} title="New activity">
         <ActivityForm onDone={() => setCreating(false)} />
