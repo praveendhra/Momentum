@@ -114,7 +114,15 @@ export default function AuthPage() {
             <>
               <div className="space-y-2">
                 {PROVIDERS.map((p) => {
-                  if (p === 'google' && googleIdentityAvailable && !gsiFailed) {
+                  if (p === 'google' && googleIdentityAvailable) {
+                    // No redirect fallback: that flow shows the raw *.supabase.co address on Google's screen.
+                    if (gsiFailed) {
+                      return (
+                        <p key={p} className="text-sm text-amber-300 text-center">
+                          Google sign-in couldn't load. Check that an ad or tracker blocker isn't blocking accounts.google.com, then reload.
+                        </p>
+                      )
+                    }
                     return (
                       <GoogleSignIn key={p} supabase={sb} theme={resolvedTheme}
                         text={mode === 'sign_up' ? 'signup_with' : 'continue_with'}

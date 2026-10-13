@@ -53,7 +53,7 @@ interface Props {
   theme: 'light' | 'dark'
   text: 'signin_with' | 'signup_with' | 'continue_with'
   onError: (message: string) => void
-  /** Called when GIS can't load (blocked script etc.) so the caller can fall back to the redirect flow. */
+  /** Called when Google's script can't load (blocked by an extension, offline…). */
   onUnavailable: () => void
 }
 
