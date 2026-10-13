@@ -1,9 +1,11 @@
-import { useState, type FormEvent } from 'react'
+import { useCallback, useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import type { Provider } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { btnGhost, btnPrimary, ErrorNote, inputCls } from '../components/ui'
+import GoogleSignIn, { googleIdentityAvailable } from '../components/GoogleSignIn'
+import { usePreferences } from '../hooks/usePreferences'
 
 // Social providers must also be enabled in Supabase → Authentication → Providers.
 // Set VITE_AUTH_PROVIDERS=google,github once they are.
@@ -47,6 +49,10 @@ export default function AuthPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [gsiFailed, setGsiFailed] = useState(false)
+  const { resolvedTheme } = usePreferences()
+  const onGsiError = useCallback((m: string) => setError(m), [])
+  const onGsiUnavailable = useCallback(() => setGsiFailed(true), [])
 
   if (user || !supabase) return <Navigate to="/" replace />
   const sb = supabase
@@ -108,6 +114,13 @@ export default function AuthPage() {
             <>
               <div className="space-y-2">
                 {PROVIDERS.map((p) => {
+                  if (p === 'google' && googleIdentityAvailable && !gsiFailed) {
+                    return (
+                      <GoogleSignIn key={p} supabase={sb} theme={resolvedTheme}
+                        text={mode === 'sign_up' ? 'signup_with' : 'continue_with'}
+                        onError={onGsiError} onUnavailable={onGsiUnavailable} />
+                    )
+                  }
                   const meta = PROVIDER_META[p]
                   return (
                     <button key={p} type="button" disabled={busy} onClick={() => oauth(p)}

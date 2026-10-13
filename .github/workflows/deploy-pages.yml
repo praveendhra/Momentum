@@ -27,6 +27,8 @@ jobs:
       VITE_SUPABASE_URL: https://qcyijvnkgdznekbzccgj.supabase.co
       VITE_SUPABASE_ANON_KEY: sb_publishable_HEkrpfICFy5oKMGnSplJ3A_ektg8yry
       VITE_AUTH_PROVIDERS: ${{ vars.VITE_AUTH_PROVIDERS || 'google' }}
+      # Public OAuth client ID (not a secret) for Google Identity Services sign-in.
+      VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID || '17185534133-rv5di0vpcakcu82btkfqvg2mdd2d9cq4.apps.googleusercontent.com' }}
       BASE_PATH: /
     steps:
       - uses: actions/checkout@v4
