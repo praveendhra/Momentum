@@ -48,7 +48,7 @@ export default function LogModal({ activity, categorySlug, existing, defaultDate
   const [intensity, setIntensity] = useState<number | null>(existing?.intensity ?? null)
   const [quality, setQuality] = useState<number | null>(existing?.quality ?? null)
   const [difficulty, setDifficulty] = useState<number | null>(existing?.difficulty ?? null)
-  const [mood, setMood] = useState<number | null>(existing?.mood_score ?? (categorySlug === 'mood' && isBoolean && !existing ? 7 : null))
+  const [mood, setMood] = useState<number | null>(existing?.mood_score ?? null)
   const [energy, setEnergy] = useState<number | null>((extra.energy as number) ?? null)
   const [stress, setStress] = useState<number | null>((extra.stress as number) ?? null)
   const [factors, setFactors] = useState<string[]>((extra.factors as string[]) ?? [])
@@ -61,6 +61,8 @@ export default function LogModal({ activity, categorySlug, existing, defaultDate
   )
 
   const mutation = existing ? update : create
+  // A mood check-in without a mood score is meaningless, so ask for it explicitly.
+  const needsMood = categorySlug === 'mood' && isBoolean && mood == null
   const unitLabel = unitLabelFor(activity.unit, prefs) || activity.unit
   const goal = activity.daily_target != null ? `goal ${fmt(toDisplay(activity.daily_target, qtyMeasure, prefs))}` : undefined
 
@@ -170,7 +172,10 @@ export default function LogModal({ activity, categorySlug, existing, defaultDate
 
         {categorySlug === 'mood' && (
           <>
-            <Scale label="Mood" max={10} value={mood} onChange={setMood} />
+            <div>
+              <Scale label="How are you feeling? (1 = awful, 10 = great)" max={10} value={mood} onChange={setMood} />
+              {needsMood && <p className="text-xs text-amber-300 mt-1">Pick a mood score to log this check-in.</p>}
+            </div>
             <Scale label="Energy" max={10} value={energy} onChange={setEnergy} />
             <Scale label="Stress" max={10} value={stress} onChange={setStress} />
             <div>
@@ -193,14 +198,14 @@ export default function LogModal({ activity, categorySlug, existing, defaultDate
           </>
         )}
 
-        <Field label={categorySlug === 'mood' ? 'Gratitude / journal' : categorySlug === 'skill' ? 'What did you practice?' : 'Notes'}>
+        <Field label={categorySlug === 'mood' ? 'Journal: what are you grateful for today?' : categorySlug === 'skill' ? 'What did you practice?' : 'Notes'}>
           <textarea rows={2} className={inputCls} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </Field>
 
         <ErrorNote error={mutation.error} />
         <div className="flex gap-3 justify-end pt-1">
           <button type="button" className={btnGhost} onClick={onClose}>Cancel</button>
-          <button type="submit" className={btnPrimary} disabled={mutation.isPending}>
+          <button type="submit" className={btnPrimary} disabled={mutation.isPending || needsMood}>
             {mutation.isPending ? 'Saving…' : existing ? 'Save changes' : 'Log it'}
           </button>
         </div>

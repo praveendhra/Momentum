@@ -53,7 +53,8 @@ function QuickLog({ onLogged }: { onLogged: (log: LogCreated, a: Activity) => vo
         {activities?.filter((a) => a.is_active).map((a) => {
           const p = progress(a)
           const pct = a.daily_target ? Math.min(100, (p.total / a.daily_target) * 100) : p.done ? 100 : 0
-          const oneTap = a.unit === 'boolean'
+          // Mood check-ins always open the form: the score is the whole point.
+          const oneTap = a.unit === 'boolean' && slug(a) !== 'mood'
           return (
             <button
               key={a.id}
@@ -79,7 +80,7 @@ function QuickLog({ onLogged }: { onLogged: (log: LogCreated, a: Activity) => vo
                   ? `${fmt(toDisplay(p.total, measureOf(a.unit), prefs))} / ${fmt(toDisplay(a.daily_target, measureOf(a.unit), prefs))} ${unitLabel(a.unit, prefs)}`.trim()
                   : p.done
                     ? `Logged${p.count > 1 ? ` ×${p.count}` : ''}`
-                    : oneTap ? 'Tap to mark done' : 'Tap to log'}
+                    : oneTap ? 'Tap to mark done' : slug(a) === 'mood' ? 'Tap to check in' : 'Tap to log'}
               </p>
             </button>
           )

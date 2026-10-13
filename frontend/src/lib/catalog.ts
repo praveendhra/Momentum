@@ -30,7 +30,6 @@ const RAW: P[] = [
   { category_slug: 'skill', name: 'Music Practice', icon: '🎸', color: '#c026d3', unit: 'minutes', daily_target: 30 },
   { category_slug: 'skill', name: 'Drawing', icon: '🎨', color: '#d946ef', unit: 'minutes', daily_target: null },
   { category_slug: 'mood', name: 'Mood Check-in', icon: '😊', color: '#f59e0b', unit: 'boolean', daily_target: null },
-  { category_slug: 'mood', name: 'Gratitude', icon: '🙏', color: '#eab308', unit: 'count', daily_target: 3 },
 ]
 
 export const PRESETS: PresetActivity[] = RAW.map((p) => ({ ...p, category_id: catId(p.category_slug) }))

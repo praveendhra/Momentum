@@ -26,5 +26,4 @@ PRESET_ACTIVITIES: list[dict] = [
     {"category": "skill", "name": "Drawing", "icon": "🎨", "color": "#d946ef", "unit": "minutes", "daily_target": None},
     # Mood
     {"category": "mood", "name": "Mood Check-in", "icon": "😊", "color": "#f59e0b", "unit": "boolean", "daily_target": None},
-    {"category": "mood", "name": "Gratitude", "icon": "🙏", "color": "#eab308", "unit": "count", "daily_target": 3},
 ]
