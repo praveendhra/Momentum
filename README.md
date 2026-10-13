@@ -167,6 +167,7 @@ Push to `main`. `.github/workflows/deploy-pages.yml` builds the frontend and pub
 - Secrets (Supabase → Edge Functions → Secrets): `RESEND_API_KEY` and `RESEND_FROM` (currently `Momentum <momentum@mail.praveendhra.com>`).
 - Sending domain `mail.praveendhra.com` is verified in Resend via a DKIM TXT record and two CNAMEs (`rsend.mail`, `send.mail`, DNS only) in Cloudflare.
 - The function's "Verify JWT with legacy secret" setting must be **off** (the function authenticates test-email requests itself).
+- **Sender avatar:** `momentum@mail.praveendhra.com` is also a Google account with the Momentum logo as its profile photo, so Gmail shows the logo next to Momentum emails. Mail to that address is forwarded to the owner's Gmail by Cloudflare Email Routing (subdomain `mail.praveendhra.com`).
 - Redeploy after editing: paste `index.ts` into the function's Code tab in the dashboard, or `supabase functions deploy send-notifications --no-verify-jwt`.
 
 ### Social sign-in
