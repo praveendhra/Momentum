@@ -173,6 +173,8 @@ Push to `main`. `.github/workflows/deploy-pages.yml` builds the frontend and pub
 
 **Google is live.** OAuth client "Momentum web (Supabase)" lives in the Google Cloud project `momentum-511514` (Google Auth Platform → Clients), with `https://momentum.praveendhra.com` as the JavaScript origin and `https://qcyijvnkgdznekbzccgj.supabase.co/auth/v1/callback` as the redirect URI. Its client ID and secret are saved in Supabase → Authentication → Sign In / Providers → Google.
 
+The sign-in button uses **Google Identity Services** (`frontend/src/components/GoogleSignIn.tsx`): Google returns an ID token directly to `momentum.praveendhra.com`, which the app exchanges with `supabase.auth.signInWithIdToken`. That's why Google's screen names momentum.praveendhra.com rather than the `*.supabase.co` project URL (the alternative, a Supabase custom domain, needs a paid plan). The client ID is public and set via `VITE_GOOGLE_CLIENT_ID` in the deploy workflow; if Google's script can't load, the button falls back to the normal redirect flow.
+
 To add **GitHub** (or another provider):
 
 1. Create an OAuth app (GitHub → Settings → Developer settings → OAuth Apps) with the Supabase callback URL above, then enable GitHub in Supabase with its client ID/secret.
