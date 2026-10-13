@@ -89,7 +89,10 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 function layout(title: string, body: string): string {
   return `<!doctype html><html><body style="margin:0;background:#f4f6f9;font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#1e293b">
   <div style="max-width:520px;margin:0 auto;padding:32px 20px">
-    <div style="font-size:20px;font-weight:700;color:#059669;margin-bottom:20px">Momentum</div>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:20px"><tr>
+      <td style="vertical-align:middle"><img src="${APP_URL}/pwa-192x192.png" width="36" height="36" alt="" style="display:block;border-radius:9px" /></td>
+      <td style="vertical-align:middle;padding-left:10px;font-size:20px;font-weight:700;color:#059669">Momentum</td>
+    </tr></table>
     <div style="background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:24px">
       <h1 style="font-size:20px;margin:0 0 12px">${title}</h1>
       ${body}
