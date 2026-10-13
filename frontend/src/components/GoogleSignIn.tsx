@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 /**
@@ -59,17 +59,9 @@ interface Props {
 
 export default function GoogleSignIn({ supabase, theme, text, onError, onUnavailable }: Props) {
   const ref = useRef<HTMLDivElement>(null)
-  const [width, setWidth] = useState(0)
 
   useEffect(() => {
-    if (!ref.current) return
-    const ro = new ResizeObserver(([e]) => setWidth(Math.floor(e.contentRect.width)))
-    ro.observe(ref.current)
-    return () => ro.disconnect()
-  }, [])
-
-  useEffect(() => {
-    if (!CLIENT_ID || !width || !ref.current) return
+    if (!CLIENT_ID || !ref.current) return
     let cancelled = false
     const el = ref.current
     ;(async () => {
@@ -96,7 +88,7 @@ export default function GoogleSignIn({ supabase, theme, text, onError, onUnavail
           shape: 'rectangular',
           text,
           logo_alignment: 'center',
-          width: Math.min(400, Math.max(200, width)),
+          width: Math.min(400, Math.max(200, el.offsetWidth || 320)),
         })
       } catch {
         if (!cancelled) onUnavailable()
@@ -105,7 +97,7 @@ export default function GoogleSignIn({ supabase, theme, text, onError, onUnavail
     return () => {
       cancelled = true
     }
-  }, [supabase, theme, text, width, onError, onUnavailable])
+  }, [supabase, theme, text, onError, onUnavailable])
 
   // Fixed height avoids a layout jump while Google's iframe loads.
   return <div ref={ref} className="w-full h-10 flex justify-center [color-scheme:normal]" />
