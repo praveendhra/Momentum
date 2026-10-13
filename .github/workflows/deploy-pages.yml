@@ -26,7 +26,7 @@ jobs:
       # security in supabase/schema.sql allows. Never put a secret key here.
       VITE_SUPABASE_URL: https://qcyijvnkgdznekbzccgj.supabase.co
       VITE_SUPABASE_ANON_KEY: sb_publishable_HEkrpfICFy5oKMGnSplJ3A_ektg8yry
-      VITE_AUTH_PROVIDERS: ${{ vars.VITE_AUTH_PROVIDERS }}
+      VITE_AUTH_PROVIDERS: ${{ vars.VITE_AUTH_PROVIDERS || 'google' }}
       BASE_PATH: /
     steps:
       - uses: actions/checkout@v4
