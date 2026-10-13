@@ -1,11 +1,10 @@
-import { useCallback, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import type { Provider } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { btnGhost, btnPrimary, ErrorNote, inputCls } from '../components/ui'
-import GoogleSignIn, { googleIdentityAvailable } from '../components/GoogleSignIn'
-import { usePreferences } from '../hooks/usePreferences'
+import { GOOGLE_CLIENT_ID, startGoogleSignIn, takeGoogleError } from '../lib/googleAuth'
 
 // Social providers must also be enabled in Supabase → Authentication → Providers.
 // Set VITE_AUTH_PROVIDERS=google,github once they are.
@@ -47,12 +46,8 @@ export default function AuthPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(() => takeGoogleError())
   const [notice, setNotice] = useState<string | null>(null)
-  const [gsiFailed, setGsiFailed] = useState(false)
-  const { resolvedTheme } = usePreferences()
-  const onGsiError = useCallback((m: string) => setError(m), [])
-  const onGsiUnavailable = useCallback(() => setGsiFailed(true), [])
 
   if (user || !supabase) return <Navigate to="/" replace />
   const sb = supabase
@@ -85,6 +80,16 @@ export default function AuthPage() {
   async function oauth(provider: Provider) {
     setError(null)
     setBusy(true)
+    if (provider === 'google' && GOOGLE_CLIENT_ID) {
+      // Direct to Google so its screen names this site, not <ref>.supabase.co.
+      try {
+        await startGoogleSignIn()
+      } catch (err) {
+        setError(err instanceof Error ? err.message : String(err))
+        setBusy(false)
+      }
+      return
+    }
     const { error } = await sb.auth.signInWithOAuth({ provider, options: { redirectTo: REDIRECT } })
     if (error) {
       setError(error.message)
@@ -114,21 +119,6 @@ export default function AuthPage() {
             <>
               <div className="space-y-2">
                 {PROVIDERS.map((p) => {
-                  if (p === 'google' && googleIdentityAvailable) {
-                    // No redirect fallback: that flow shows the raw *.supabase.co address on Google's screen.
-                    if (gsiFailed) {
-                      return (
-                        <p key={p} className="text-sm text-amber-300 text-center">
-                          Google sign-in couldn't load. Check that an ad or tracker blocker isn't blocking accounts.google.com, then reload.
-                        </p>
-                      )
-                    }
-                    return (
-                      <GoogleSignIn key={p} supabase={sb} theme={resolvedTheme}
-                        text={mode === 'sign_up' ? 'signup_with' : 'continue_with'}
-                        onError={onGsiError} onUnavailable={onGsiUnavailable} />
-                    )
-                  }
                   const meta = PROVIDER_META[p]
                   return (
                     <button key={p} type="button" disabled={busy} onClick={() => oauth(p)}

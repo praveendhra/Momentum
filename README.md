@@ -173,7 +173,7 @@ Push to `main`. `.github/workflows/deploy-pages.yml` builds the frontend and pub
 
 **Google is live.** OAuth client "Momentum web (Supabase)" lives in the Google Cloud project `momentum-511514` (Google Auth Platform → Clients), with `https://momentum.praveendhra.com` as the JavaScript origin and `https://qcyijvnkgdznekbzccgj.supabase.co/auth/v1/callback` as the redirect URI. Its client ID and secret are saved in Supabase → Authentication → Sign In / Providers → Google.
 
-The sign-in button uses **Google Identity Services** (`frontend/src/components/GoogleSignIn.tsx`): Google returns an ID token directly to `momentum.praveendhra.com`, which the app exchanges with `supabase.auth.signInWithIdToken`. That's why Google's screen names momentum.praveendhra.com rather than the `*.supabase.co` project URL (the alternative, a Supabase custom domain, needs a paid plan). The client ID is public and set via `VITE_GOOGLE_CLIENT_ID` in the deploy workflow; if Google's script can't load, the button falls back to the normal redirect flow.
+The button skips Supabase's OAuth redirect (`frontend/src/lib/googleAuth.ts`): it sends you to Google with `redirect_uri=https://momentum.praveendhra.com/` and `response_type=id_token`, then exchanges the returned ID token with `supabase.auth.signInWithIdToken` (hashed nonce + `state` check). That's why Google's screen says "to continue to momentum.praveendhra.com" rather than the `*.supabase.co` project URL (the alternative, a Supabase custom domain, needs a paid plan). Both `https://momentum.praveendhra.com/` and the Supabase callback are registered as redirect URIs on the Google client; the public client ID is set via `VITE_GOOGLE_CLIENT_ID` in the deploy workflow.
 
 To add **GitHub** (or another provider):
 
