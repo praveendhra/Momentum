@@ -117,7 +117,7 @@ It's a fully responsive, installable PWA: add it to your home screen from the br
 ```
  ┌────────────────────────────┐       HTTPS (supabase-js)       ┌──────────────────────────────┐
  │  React PWA (GitHub Pages)  │ ──────────────────────────────▶ │  Supabase                    │
- │  momentum.praveendhra.com  │ ◀────────────────────────────── │  • Auth (email + password)   │
+ │  momentum.praveendhra.com  │ ◀────────────────────────────── │  • Auth (email, Google)      │
  │                            │     only *your* rows, via RLS    │  • Postgres + row-level sec. │
  │  • all stats computed here │                                  │  • pg_cron → Edge Function   │
  └────────────────────────────┘                                  │      └─▶ Resend (emails)     │
@@ -169,10 +169,14 @@ Push to `main`. `.github/workflows/deploy-pages.yml` builds the frontend and pub
 - The function's "Verify JWT with legacy secret" setting must be **off** (the function authenticates test-email requests itself).
 - Redeploy after editing: paste `index.ts` into the function's Code tab in the dashboard, or `supabase functions deploy send-notifications --no-verify-jwt`.
 
-### Enabling Google / GitHub sign-in
+### Social sign-in
 
-1. Supabase → Authentication → Providers → enable Google and/or GitHub (each needs an OAuth app client ID/secret; the callback URL is shown on the Supabase page).
-2. GitHub repo → Settings → Secrets and variables → Actions → Variables → add `VITE_AUTH_PROVIDERS` = `google,github`.
+**Google is live.** OAuth client "Momentum web (Supabase)" lives in the Google Cloud project `momentum-511514` (Google Auth Platform → Clients), with `https://momentum.praveendhra.com` as the JavaScript origin and `https://qcyijvnkgdznekbzccgj.supabase.co/auth/v1/callback` as the redirect URI. Its client ID and secret are saved in Supabase → Authentication → Sign In / Providers → Google.
+
+To add **GitHub** (or another provider):
+
+1. Create an OAuth app (GitHub → Settings → Developer settings → OAuth Apps) with the Supabase callback URL above, then enable GitHub in Supabase with its client ID/secret.
+2. GitHub repo → Settings → Secrets and variables → Actions → Variables → set `VITE_AUTH_PROVIDERS` = `google,github` (the deploy defaults to `google`).
 3. Re-run the "Deploy frontend to GitHub Pages" workflow.
 
 ### Project layout
