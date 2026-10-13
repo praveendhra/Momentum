@@ -80,11 +80,11 @@ export function Field({ label, hint, children }: { label: string; hint?: ReactNo
 }
 
 /** 1..max picker rendered as a row of buttons; click the selected value again to clear. */
-export function Scale({ value, onChange, max, label }: { value: number | null; onChange: (v: number | null) => void; max: number; label: string }) {
+export function Scale({ value, onChange, max, label, required = false }: { value: number | null; onChange: (v: number | null) => void; max: number; label: string; required?: boolean }) {
   return (
     <div>
       <span className="block text-sm text-slate-300 mb-1">
-        {label} <span className="text-slate-500">{value ? `${value}/${max}` : 'optional'}</span>
+        {label} <span className="text-slate-500">{value ? `${value}/${max}` : required ? 'required' : 'optional'}</span>
       </span>
       <div className="flex gap-1" role="radiogroup" aria-label={label}>
         {Array.from({ length: max }, (_, i) => i + 1).map((n) => (

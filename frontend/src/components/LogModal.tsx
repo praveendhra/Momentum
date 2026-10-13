@@ -173,7 +173,7 @@ export default function LogModal({ activity, categorySlug, existing, defaultDate
         {categorySlug === 'mood' && (
           <>
             <div>
-              <Scale label="How are you feeling? (1 = awful, 10 = great)" max={10} value={mood} onChange={setMood} />
+              <Scale label="How are you feeling? (1 = awful, 10 = great)" max={10} value={mood} onChange={setMood} required={categorySlug === 'mood' && isBoolean} />
               {needsMood && <p className="text-xs text-amber-300 mt-1">Pick a mood score to log this check-in.</p>}
             </div>
             <Scale label="Energy" max={10} value={energy} onChange={setEnergy} />
