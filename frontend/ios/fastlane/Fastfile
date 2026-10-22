@@ -74,7 +74,9 @@ end
 platform :ios do
   lane :listing do |opts|
     submit = opts[:submit] == true || opts[:submit] == 'true'
+    only_screens = opts[:screenshots_only] == true || opts[:screenshots_only] == 'true'
     deliver(
+      skip_metadata: only_screens,
       api_key: api_key!,
       app_identifier: APP_ID,
       app_version: ENV.fetch('APP_VERSION', '1.0.0'),
