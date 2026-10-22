@@ -133,7 +133,7 @@ export default function AuthPage() {
               <div className="space-y-2">
                 {appleSignInAvailable && (
                   <button type="button" disabled={busy} onClick={apple}
-                    className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-lg bg-white text-black font-medium text-[17px] disabled:opacity-60">
+                    className="w-full h-11 inline-flex items-center justify-center gap-2 rounded-lg bg-white text-black font-medium text-[17px] border border-slate-300 disabled:opacity-60">
                     <svg viewBox="0 0 17 20" className="h-[18px] w-[18px] -mt-0.5" fill="currentColor" aria-hidden>
                       <path d="M14.04 10.6c-.02-2.2 1.8-3.26 1.88-3.31-1.03-1.5-2.62-1.7-3.18-1.73-1.35-.14-2.64.8-3.33.8-.69 0-1.74-.78-2.87-.76-1.47.02-2.83.86-3.59 2.18-1.53 2.66-.39 6.6 1.1 8.76.73 1.06 1.6 2.24 2.73 2.2 1.1-.05 1.51-.71 2.84-.71 1.32 0 1.7.71 2.86.69 1.18-.02 1.93-1.07 2.65-2.13.84-1.22 1.18-2.41 1.2-2.47-.03-.01-2.28-.88-2.3-3.47ZM11.86 4.13c.6-.73 1.01-1.75.9-2.76-.87.04-1.92.58-2.54 1.31-.56.64-1.05 1.68-.92 2.67.97.08 1.96-.49 2.56-1.22Z" />
                     </svg>

@@ -18,8 +18,15 @@ App Store Connect → Apps → **+** → New App:
 - SKU: `momentum-ios`
 
 ### 1b. Turn on Sign in with Apple
-- **Supabase** → Authentication → Sign In / Providers → **Apple** → enable, and put `com.praveendhra.momentum` in **Client IDs**. Leave the secret empty (it's only needed for Apple sign-in on the website). Save.
+- **Supabase** → Authentication → Sign In / Providers → **Apple** → enable, and put `com.praveendhra.momentum,com.praveendhra.momentum.web` in **Client IDs** (app + website). Leave the secret empty (it's only needed for Apple sign-in on the website). Save.
 - **Apple:** nothing to do by hand. The app's `App.entitlements` requests the capability and automatic signing adds it to the App ID during the CI build. If the build complains, enable it manually: developer.apple.com → Identifiers → com.praveendhra.momentum → check **Sign In with Apple** → Save.
+
+### 1b-web. Sign in with Apple on the website
+The website uses Apple's popup and the same token exchange (no 6-month secret to rotate). It needs a **Services ID**:
+1. developer.apple.com → Identifiers → **+** → **Services IDs** → Description `Momentum Web`, Identifier **`com.praveendhra.momentum.web`** → Register.
+2. Open it, tick **Sign In with Apple** → **Configure**: Primary App ID **com.praveendhra.momentum**; Domains **`momentum.praveendhra.com`**; Return URLs **`https://momentum.praveendhra.com/`** → Next → Done → Continue → Save.
+3. Supabase → Apple provider → **Client IDs**: `com.praveendhra.momentum,com.praveendhra.momentum.web` → Save.
+4. Turn the button on: set `VITE_APPLE_WEB: "1"` in `.github/workflows/deploy-pages.yml` (Claude can do this once steps 1–3 are done).
 
 ### 1c. Account deletion revokes Sign in with Apple (Guideline 5.1.1(v))
 When an Apple user deletes their account in the iOS app, Apple asks them to confirm (Face ID), and the `delete-account` Edge Function revokes the app's Apple tokens before deleting the account. Setup:

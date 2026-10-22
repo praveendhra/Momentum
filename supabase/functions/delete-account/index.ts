@@ -11,7 +11,7 @@
 //   APPLE_TEAM_ID       10-character Apple Team ID
 //   APPLE_KEY_ID        Key ID of a "Sign in with Apple" key
 //   APPLE_PRIVATE_KEY   Contents of that key's AuthKey_XXXX.p8 file
-//   APPLE_CLIENT_ID     Optional, defaults to the app's bundle ID
+//   APPLE_CLIENT_IDS    Optional, defaults to the app bundle ID + web Services ID
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
@@ -33,7 +33,9 @@ const admin = createClient(SUPABASE_URL, serviceKey(), { auth: { persistSession:
 const APPLE_TEAM_ID = Deno.env.get('APPLE_TEAM_ID') ?? ''
 const APPLE_KEY_ID = Deno.env.get('APPLE_KEY_ID') ?? ''
 const APPLE_PRIVATE_KEY = Deno.env.get('APPLE_PRIVATE_KEY') ?? ''
-const APPLE_CLIENT_ID = Deno.env.get('APPLE_CLIENT_ID') ?? 'com.praveendhra.momentum'
+// iOS app bundle ID and the website's Services ID; the code must be revoked with the client it was issued to.
+const APPLE_CLIENT_IDS = (Deno.env.get('APPLE_CLIENT_IDS') ?? 'com.praveendhra.momentum,com.praveendhra.momentum.web')
+  .split(',').map((s) => s.trim()).filter(Boolean)
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -48,13 +50,13 @@ const b64url = (bytes: Uint8Array) =>
   btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
 const b64urlJson = (o: unknown) => b64url(new TextEncoder().encode(JSON.stringify(o)))
 
-async function appleClientSecret(): Promise<string> {
+async function appleClientSecret(clientId: string): Promise<string> {
   const pem = APPLE_PRIVATE_KEY.replace(/-----[^-]+-----/g, '').replace(/\\n/g, '').replace(/\s+/g, '')
   const der = Uint8Array.from(atob(pem), (c) => c.charCodeAt(0))
   const key = await crypto.subtle.importKey('pkcs8', der, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign'])
   const now = Math.floor(Date.now() / 1000)
   const header = b64urlJson({ alg: 'ES256', kid: APPLE_KEY_ID })
-  const payload = b64urlJson({ iss: APPLE_TEAM_ID, iat: now, exp: now + 300, aud: 'https://appleid.apple.com', sub: APPLE_CLIENT_ID })
+  const payload = b64urlJson({ iss: APPLE_TEAM_ID, iat: now, exp: now + 300, aud: 'https://appleid.apple.com', sub: clientId })
   // WebCrypto returns the raw r||s signature JWS expects.
   const sig = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key, new TextEncoder().encode(`${header}.${payload}`)))
   return `${header}.${payload}.${b64url(sig)}`
@@ -72,16 +74,17 @@ async function appleForm(path: string, fields: Record<string, string>) {
 }
 
 /** Exchange a fresh authorization code for a refresh token, then revoke it. */
-async function revokeApple(code: string) {
+async function revokeApple(code: string, clientId: string) {
+  if (!APPLE_CLIENT_IDS.includes(clientId)) throw new Error(`Unknown Apple client ${clientId}`)
   if (!APPLE_TEAM_ID || !APPLE_KEY_ID || !APPLE_PRIVATE_KEY) {
     throw new Error('Sign in with Apple revocation is not configured (APPLE_TEAM_ID / APPLE_KEY_ID / APPLE_PRIVATE_KEY)')
   }
-  const client_secret = await appleClientSecret()
-  const tokens = await appleForm('token', { client_id: APPLE_CLIENT_ID, client_secret, code, grant_type: 'authorization_code' })
+  const client_secret = await appleClientSecret(clientId)
+  const tokens = await appleForm('token', { client_id: clientId, client_secret, code, grant_type: 'authorization_code' })
   const token = tokens.refresh_token ?? tokens.access_token
   if (!token) throw new Error('Apple returned no token to revoke')
   await appleForm('revoke', {
-    client_id: APPLE_CLIENT_ID,
+    client_id: clientId,
     client_secret,
     token,
     token_type_hint: tokens.refresh_token ? 'refresh_token' : 'access_token',
@@ -98,7 +101,7 @@ Deno.serve(async (req) => {
     if (error || !auth.user) return json(401, { error: 'Sign in first' })
     const user = auth.user
 
-    const body = await req.json().catch(() => ({})) as { appleAuthorizationCode?: string }
+    const body = await req.json().catch(() => ({})) as { appleAuthorizationCode?: string; appleClientId?: string }
     const providers: string[] = (user.app_metadata?.providers as string[] | undefined) ?? []
     const usesApple = providers.includes('apple') || user.identities?.some((i) => i.provider === 'apple')
 
@@ -106,7 +109,7 @@ Deno.serve(async (req) => {
     let appleRevoked = false
     if (usesApple && body.appleAuthorizationCode) {
       try {
-        await revokeApple(body.appleAuthorizationCode)
+        await revokeApple(body.appleAuthorizationCode, body.appleClientId ?? APPLE_CLIENT_IDS[0])
         appleRevoked = true
       } catch (err) {
         console.error(`apple revoke for ${user.id}:`, err)

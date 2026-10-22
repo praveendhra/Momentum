@@ -3,8 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { Modal, inputCls, btnGhost } from './ui'
-import { appleAuthorizationCode } from '../lib/appleAuth'
-import { isNative } from '../lib/native'
+import { APPLE_CLIENT_ID, appleAuthorizationCode, appleSignInAvailable } from '../lib/appleAuth'
 
 const CONFIRM_WORD = 'DELETE'
 
@@ -28,18 +27,18 @@ export default function DeleteAccount() {
     if (!supabase) return
     setBusy(true)
     setError(null)
-    // Apple users in the iOS app confirm with Apple first, so their Sign in with Apple link is revoked too.
+    // Apple users confirm with Apple first, so their Sign in with Apple link is revoked too.
     const { data } = await supabase.auth.getUser()
     const usesApple = ((data.user?.app_metadata?.providers as string[] | undefined) ?? []).includes('apple')
-    const appleCode = usesApple && isNative ? await appleAuthorizationCode() : null
-    if (usesApple && isNative && !appleCode) {
+    const appleCode = usesApple && appleSignInAvailable ? await appleAuthorizationCode() : null
+    if (usesApple && appleSignInAvailable && !appleCode) {
       setError('Confirm with Apple to delete your account.')
       setBusy(false)
       return
     }
 
     const { error: fnError } = await supabase.functions.invoke('delete-account', {
-      body: appleCode ? { appleAuthorizationCode: appleCode } : {},
+      body: appleCode ? { appleAuthorizationCode: appleCode, appleClientId: APPLE_CLIENT_ID } : {},
     })
     if (fnError) {
       // Fall back to the database function if the edge function isn't deployed.
