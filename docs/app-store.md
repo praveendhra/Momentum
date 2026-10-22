@@ -2,7 +2,7 @@
 
 The iOS app is the same React app wrapped with [Capacitor](https://capacitorjs.com) (`frontend/ios/`). It's built and uploaded to App Store Connect by GitHub Actions on a macOS runner (`.github/workflows/ios-release.yml`), so no Mac is needed.
 
-- **Store name:** Momentum: Habit Tracker (home-screen name: Momentum)
+- **Store name:** Momentum: Habits & Streaks (home-screen name: Momentum). "Momentum", "Momentum: Habit Tracker" and similar were taken.
 - **Bundle ID:** `com.praveendhra.momentum`
 - **Devices:** iPhone only, portrait
 - **Sign-in in the app:** Sign in with Apple (native sheet) and email + password. Google sign-in is web-only because Google blocks it inside app web views.
