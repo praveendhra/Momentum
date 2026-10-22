@@ -1,1 +1,1 @@
-habit,tracker,workout,gym,streak,mood,journal,fitness,log,routine,goals,heatmap,running,reading
+habit,tracker,streak,routine,daily,goals,habits,heatmap,journal,mood,reading,meditation,water,log

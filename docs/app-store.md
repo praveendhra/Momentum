@@ -2,6 +2,7 @@
 
 The iOS app is the same React app wrapped with [Capacitor](https://capacitorjs.com) (`frontend/ios/`). It's built and uploaded to App Store Connect by GitHub Actions on a macOS runner (`.github/workflows/ios-release.yml`), so no Mac is needed.
 
+- **Store name:** Momentum: Habit Tracker (home-screen name: Momentum)
 - **Bundle ID:** `com.praveendhra.momentum`
 - **Devices:** iPhone only, portrait
 - **Sign-in in the app:** Sign in with Apple (native sheet) and email + password. Google sign-in is web-only because Google blocks it inside app web views.
@@ -88,7 +89,7 @@ The build appears in App Store Connect → TestFlight after Apple processes it (
 
 **Support URL:** https://momentum.praveendhra.com/support.html · **Marketing URL:** https://momentum.praveendhra.com · **Privacy Policy URL:** https://momentum.praveendhra.com/privacy.html
 
-**Screenshots (6.9" iPhone, 1320 × 2868):** `docs/app-store/1-dashboard.png` … `5-history.png`
+**Listing source of truth:** `frontend/ios/fastlane/metadata/` (text), `frontend/ios/fastlane/screenshots/` (6.9" iPhone, 1320 × 2868), `frontend/ios/fastlane/age_rating.json`. Pushing changes there runs **iOS App Store listing**, which uploads them. The copy below is the original draft.
 
 **Review notes:** Sign in with Apple works for reviewers too, but also give Apple a demo account (email + password) with sample data loaded, e.g. create `appreview@…`, sign in, Activities → Load sample data. Mention: "Sign in with the demo account. Account deletion is in Settings → Danger zone."
 

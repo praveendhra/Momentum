@@ -1,12 +1,8 @@
 name: iOS App Store listing
 
-# Uploads the App Store listing (text, URLs, categories, screenshots, review
-# info) from frontend/ios/fastlane via the App Store Connect API, and can
-# submit a processed build for review.
-#
-# Uses the same secrets as the iOS build, plus:
-#   REVIEW_DEMO_EMAIL / REVIEW_DEMO_PASSWORD  demo account for App Review
-#   REVIEW_PHONE                              contact phone for App Review
+# Uploads the App Store listing from frontend/ios/fastlane (text, URLs,
+# categories, age rating, screenshots) via the App Store Connect API.
+# Does not submit for review. Runs on every change to the listing files.
 
 on:
   workflow_dispatch:
@@ -15,17 +11,12 @@ on:
         description: "App Store version"
         default: "1.0.0"
         required: true
-      build:
-        description: "Build number to attach (leave empty for the latest)"
-        required: false
-      screenshots_only:
-        description: "Only upload screenshots (text edited in App Store Connect)"
-        type: boolean
-        default: true
-      submit:
-        description: "Submit for review after uploading the listing"
-        type: boolean
-        default: false
+  push:
+    branches: [main]
+    paths:
+      - "frontend/ios/fastlane/metadata/**"
+      - "frontend/ios/fastlane/screenshots/**"
+      - "frontend/ios/fastlane/age_rating.json"
 
 concurrency:
   group: ios-listing
@@ -33,38 +24,48 @@ concurrency:
 
 jobs:
   listing:
-    runs-on: macos-15
+    runs-on: ubuntu-latest
     timeout-minutes: 30
-    env:
-      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
-      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-      APP_VERSION: ${{ github.event.inputs.version }}
-      BUILD_NUMBER: ${{ github.event.inputs.build }}
-      REVIEW_DEMO_EMAIL: ${{ secrets.REVIEW_DEMO_EMAIL }}
-      REVIEW_DEMO_PASSWORD: ${{ secrets.REVIEW_DEMO_PASSWORD }}
-      REVIEW_PHONE: ${{ secrets.REVIEW_PHONE }}
     steps:
       - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+      - run: gem install fastlane -N
 
-      - name: Write App Store Connect API key
-        run: |
-          mkdir -p "$RUNNER_TEMP/keys"
-          printf '%s' "${{ secrets.ASC_KEY_P8 }}" > "$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8"
-          echo "ASC_KEY_PATH=$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8" >> "$GITHUB_ENV"
-
-      - name: Check review info
-        if: github.event.inputs.submit == 'true'
-        run: |
-          for v in REVIEW_DEMO_EMAIL REVIEW_DEMO_PASSWORD REVIEW_PHONE; do
-            [ -n "${!v}" ] || { echo "::error::Missing repository secret $v (needed to submit for review)"; exit 1; }
-          done
-
-      - name: Upload listing${{ github.event.inputs.submit == 'true' && ' and submit for review' || '' }}
+      - name: Upload listing to App Store Connect
         working-directory: frontend/ios
+        env:
+          ISSUER: ${{ secrets.ASC_ISSUER_ID }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          KEY: ${{ secrets.ASC_KEY_P8 }}
+          APP_VERSION: ${{ github.event.inputs.version || '1.0.0' }}
         run: |
           set -o pipefail
-          fastlane listing submit:${{ github.event.inputs.submit }} screenshots_only:${{ github.event.inputs.screenshots_only }} 2>&1 | tee "$RUNNER_TEMP/deliver.log" || {
-            sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/deliver.log" | grep -E "^\[[0-9:]+\]" | grep -v "^\[[0-9:]+\]: *$" \
-              | tail -12 | while IFS= read -r l; do echo "::error::${l:0:900}"; done
+          # Normalise the key (strip CRs, rebuild PEM) and hand it to fastlane as base64.
+          BODY=$(printf '%s\n' "$KEY" | tr -d '\r' | grep -v -e '-----' | tr -d ' \n\t')
+          PEM=$(printf -- '-----BEGIN PRIVATE KEY-----\n%s\n-----END PRIVATE KEY-----\n' "$(printf '%s' "$BODY" | fold -w 64)")
+          jq -n --arg k "$KEY_ID" --arg i "$ISSUER" --arg p "$(printf '%s' "$PEM" | base64 -w0)" \
+            '{key_id:$k, issuer_id:$i, key:$p, is_key_content_base64:true, in_house:false}' > "$RUNNER_TEMP/asc.json"
+          export FASTLANE_OPT_OUT_USAGE=1
+          common=(--api_key_path "$RUNNER_TEMP/asc.json" --app_identifier com.praveendhra.momentum
+                  --platform ios --app_version "$APP_VERSION" --skip_binary_upload true --skip_app_version_update true
+                  --submit_for_review false --run_precheck_before_submit false --force true)
+          # Text. fastlane reports "No data" when Apple returns an empty response
+          # (e.g. nothing changed), so a failure here is only a warning.
+          set +e
+          fastlane deliver "${common[@]}" --skip_screenshots true \
+            --metadata_path fastlane/metadata \
+            --app_rating_config_path fastlane/age_rating.json 2>&1 | tee "$RUNNER_TEMP/deliver.log"
+          if [ "${PIPESTATUS[0]}" != 0 ]; then
+            sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/deliver.log" | grep -E "^\[[0-9:]+\]" | tail -8 \
+              | while IFS= read -r l; do echo "::warning::${l:0:900}"; done
+          fi
+          set -e
+          # Screenshots.
+          fastlane deliver "${common[@]}" --skip_metadata true \
+            --screenshots_path fastlane/screenshots --overwrite_screenshots true 2>&1 | tee "$RUNNER_TEMP/screenshots.log" || {
+            sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/screenshots.log" | grep -E "^\[[0-9:]+\]" | tail -10 \
+              | while IFS= read -r l; do echo "::error::${l:0:900}"; done
             exit 1
           }
