@@ -1,0 +1,66 @@
+name: iOS App Store listing
+
+# Uploads the App Store listing (text, URLs, categories, screenshots, review
+# info) from frontend/ios/fastlane via the App Store Connect API, and can
+# submit a processed build for review.
+#
+# Uses the same secrets as the iOS build, plus:
+#   REVIEW_DEMO_EMAIL / REVIEW_DEMO_PASSWORD  demo account for App Review
+#   REVIEW_PHONE                              contact phone for App Review
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "App Store version"
+        default: "1.0.0"
+        required: true
+      build:
+        description: "Build number to attach (leave empty for the latest)"
+        required: false
+      submit:
+        description: "Submit for review after uploading the listing"
+        type: boolean
+        default: false
+
+concurrency:
+  group: ios-listing
+  cancel-in-progress: false
+
+jobs:
+  listing:
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      APP_VERSION: ${{ github.event.inputs.version }}
+      BUILD_NUMBER: ${{ github.event.inputs.build }}
+      REVIEW_DEMO_EMAIL: ${{ secrets.REVIEW_DEMO_EMAIL }}
+      REVIEW_DEMO_PASSWORD: ${{ secrets.REVIEW_DEMO_PASSWORD }}
+      REVIEW_PHONE: ${{ secrets.REVIEW_PHONE }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Write App Store Connect API key
+        run: |
+          mkdir -p "$RUNNER_TEMP/keys"
+          printf '%s' "${{ secrets.ASC_KEY_P8 }}" > "$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8"
+          echo "ASC_KEY_PATH=$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8" >> "$GITHUB_ENV"
+
+      - name: Check review info
+        if: github.event.inputs.submit == 'true'
+        run: |
+          for v in REVIEW_DEMO_EMAIL REVIEW_DEMO_PASSWORD REVIEW_PHONE; do
+            [ -n "${!v}" ] || { echo "::error::Missing repository secret $v (needed to submit for review)"; exit 1; }
+          done
+
+      - name: Upload listing${{ github.event.inputs.submit == 'true' && ' and submit for review' || '' }}
+        working-directory: frontend/ios
+        run: |
+          set -o pipefail
+          fastlane listing submit:${{ github.event.inputs.submit }} 2>&1 | tee "$RUNNER_TEMP/deliver.log" || {
+            grep -E "\[!\]|Error|error|ERROR|rejected|invalid" "$RUNNER_TEMP/deliver.log" | sed 's/\x1b\[[0-9;]*m//g' \
+              | awk '!seen[$0]++' | head -10 | while IFS= read -r l; do echo "::error::${l:0:900}"; done
+            exit 1
+          }

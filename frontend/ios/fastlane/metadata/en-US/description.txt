@@ -1,0 +1,15 @@
+Momentum is a tracker that rewards showing up, not perfection.
+
+Most trackers reset you to zero the day you miss. Momentum counts the days you showed up: every session is a block, and you stack them one at a time.
+
+• TODAY BOARD: one tap for yes/no habits, quick forms for everything else, with progress toward each daily goal.
+• YEAR HEATMAP: every day is a block that glows brighter the more you did. Filter by category or activity, switch years, and tap any day to see what you did.
+• STREAKS THAT FORGIVE: daily streaks plus weekly streaks ("17 weeks in a row") for things you do a few times a week.
+• AUTOMATIC PERSONAL RECORDS: heaviest set, estimated 1RM, longest run, biggest session, detected the moment you log.
+• STRENGTH LOGGING: sets × reps × weight with live volume. Runs get distance and time, skills get difficulty, habits get quality.
+• MOOD INSIGHTS: daily check-ins with energy, stress and a gratitude journal. After two weeks, see which activities lift your mood.
+• MILESTONES & LIFETIME TOTALS: "194 km ≈ 4.6 marathons", "16 h ≈ 8 movies".
+• YOUR WAY: light and dark themes, kg/lb, km/mi, L/fl oz, week start and time zone, optional email reminders and a weekly summary.
+• SIGN IN WITH APPLE, or email. Syncs with the web app at momentum.praveendhra.com.
+
+No ads, no tracking, nothing sold. Delete your account and all data any time in Settings.
