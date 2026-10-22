@@ -83,7 +83,8 @@ platform :ios do
       force: true, # no HTML preview on CI
       precheck_include_in_app_purchases: false,
       run_precheck_before_submit: false,
-      app_review_information: review_info,
+      # Apple requires a contact phone for review details; skip them until REVIEW_PHONE is set.
+      app_review_information: (ENV['REVIEW_PHONE'].to_s.empty? ? nil : review_info),
       submit_for_review: submit,
       automatic_release: true,
       build_number: (ENV['BUILD_NUMBER'] unless ENV['BUILD_NUMBER'].to_s.empty?),
