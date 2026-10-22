@@ -92,6 +92,24 @@ export default function ActivityHeatmap() {
   const margin = 3
   const blockSize = width ? Math.max(8, Math.min(18, Math.floor((width - 34) / weeks) - margin)) : 12
 
+  // On narrow screens the grid scrolls sideways: start at the most recent weeks.
+  useEffect(() => {
+    const el = wrapRef.current
+    if (!el) return
+    // The calendar library renders its own scroll container inside ours, so scroll every overflowing one.
+    const toEnd = () => {
+      for (const n of [el, ...el.querySelectorAll<HTMLElement>('*')]) {
+        if (n.scrollWidth > n.clientWidth + 1) n.scrollLeft = n.scrollWidth
+      }
+    }
+    const id = requestAnimationFrame(toEnd)
+    const t = setTimeout(toEnd, 150)
+    return () => {
+      cancelAnimationFrame(id)
+      clearTimeout(t)
+    }
+  }, [wrapRef, padded, blockSize, isLoading])
+
   const chip = (active: boolean) =>
     `shrink-0 inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-sm transition ${
       active ? 'border-emerald-500 bg-emerald-500/15 text-emerald-300' : 'border-slate-700 text-slate-400 hover:border-slate-500 hover:text-white'

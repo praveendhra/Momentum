@@ -5,13 +5,17 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../hooks/useAuth'
 import { btnGhost, btnPrimary, ErrorNote, inputCls } from '../components/ui'
 import { GOOGLE_CLIENT_ID, startGoogleSignIn, takeGoogleError } from '../lib/googleAuth'
+import { isNative, WEB_URL } from '../lib/native'
 
 // Social providers must also be enabled in Supabase → Authentication → Providers.
 // Set VITE_AUTH_PROVIDERS=google,github once they are.
 const PROVIDERS = ((import.meta.env.VITE_AUTH_PROVIDERS as string | undefined) ?? '')
   .split(',')
   .map((p) => p.trim())
-  .filter(Boolean) as Provider[]
+  .filter(Boolean)
+  // In the iOS app, Google blocks sign-in inside embedded web views, and App Store
+  // rules would then also require Sign in with Apple, so the app uses email only.
+  .filter(() => !isNative) as Provider[]
 
 const GoogleLogo = () => (
   <svg viewBox="0 0 48 48" className="h-5 w-5" aria-hidden>
@@ -34,7 +38,7 @@ const PROVIDER_META: Partial<Record<Provider, { label: string; Logo: () => React
 }
 
 // Where Supabase sends people back to after email confirmation / OAuth / reset.
-const REDIRECT = `${window.location.origin}${import.meta.env.BASE_URL}`
+const REDIRECT = isNative ? WEB_URL : `${window.location.origin}${import.meta.env.BASE_URL}`
 
 type Mode = 'sign_in' | 'sign_up' | 'reset'
 
@@ -166,6 +170,11 @@ export default function AuthPage() {
             )}
           </div>
         </div>
+        <p className="mt-6 text-center text-xs text-slate-500">
+          <a href="https://momentum.praveendhra.com/privacy.html" target="_blank" rel="noreferrer" className="hover:text-slate-300">Privacy Policy</a>
+          {' · '}
+          <a href="https://momentum.praveendhra.com/support.html" target="_blank" rel="noreferrer" className="hover:text-slate-300">Support</a>
+        </p>
       </div>
     </div>
   )

@@ -12,7 +12,7 @@ export default function Layout() {
   const { user, signOut, mode } = useAuth()
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white pb-20 sm:pb-0">
+    <div className="min-h-screen bg-slate-900 text-white pb-[calc(5rem+env(safe-area-inset-bottom))] sm:pb-0">
       {mode === 'local' && (
         <div className="bg-amber-500/10 border-b border-amber-500/20 text-amber-300 text-xs text-center py-1.5 px-4">
           Local mode: data is saved in this browser only. Configure Supabase to sync across devices.
@@ -53,7 +53,7 @@ export default function Layout() {
         <Outlet />
       </main>
 
-      <nav className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900/95 backdrop-blur border-t border-slate-800 grid grid-cols-4">
+      <nav className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-slate-900/95 backdrop-blur border-t border-slate-800 grid grid-cols-4 pb-[env(safe-area-inset-bottom)]">
         {NAV.map((n) => (
           <NavLink
             key={n.to}

@@ -5,14 +5,17 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // Served from the root of momentum.praveendhra.com. Set BASE_PATH=/Momentum/ to serve from praveendhra.github.io/Momentum/ instead.
 const base = process.env.BASE_PATH ?? '/'
+// Native (Capacitor) builds are served from the app bundle: no service worker there.
+const native = !!process.env.CAP_BUILD
 
 // https://vite.dev/config/
 export default defineConfig({
-  base,
+  base: native ? './' : base,
   plugins: [
     react(),
     tailwindcss(),
     VitePWA({
+      disable: native,
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {

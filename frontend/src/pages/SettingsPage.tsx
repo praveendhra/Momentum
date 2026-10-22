@@ -228,6 +228,12 @@ export default function SettingsPage() {
           <DeleteAccount />
         </section>
       )}
+
+      <p className="text-center text-xs text-slate-500">
+        <a href="https://momentum.praveendhra.com/privacy.html" target="_blank" rel="noreferrer" className="hover:text-slate-300">Privacy Policy</a>
+        {' · '}
+        <a href="https://momentum.praveendhra.com/support.html" target="_blank" rel="noreferrer" className="hover:text-slate-300">Support</a>
+      </p>
     </div>
   )
 }

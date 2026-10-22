@@ -156,6 +156,10 @@ Without Supabase values the app runs in **local mode**: no sign-in, data saved i
 
 Push to `main`. `.github/workflows/deploy-pages.yml` builds the frontend and publishes it to GitHub Pages with the `momentum.praveendhra.com` CNAME. Supabase settings come from repository secrets/variables.
 
+### iOS app (App Store)
+
+The app is also packaged for iPhone with Capacitor (`frontend/ios/`, bundle ID `com.praveendhra.momentum`). GitHub Actions builds it on macOS and uploads it to TestFlight (`.github/workflows/ios-release.yml`); no Mac needed. One-time setup, store listing text, privacy answers and screenshots: **[docs/app-store.md](docs/app-store.md)**. Locally, `npm run ios:sync` builds the web app without the service worker and copies it into the iOS project.
+
 ### Database changes
 
 `supabase/schema.sql` is the source of truth and is safe to re-run. Paste it into Supabase → SQL Editor → Run after editing it.

@@ -1,3 +1,4 @@
+import { syncStatusBar } from '../lib/native'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { PreferencesContext } from '../hooks/usePreferences'
@@ -54,6 +55,9 @@ export default function PreferencesProvider({ children }: { children: ReactNode 
     },
     [qc, user?.id],
   )
+
+  const resolved = systemTick >= 0 ? resolveTheme(prefs.theme) : 'dark'
+  useEffect(() => syncStatusBar(resolved), [resolved])
 
   const value = useMemo(
     () => ({
