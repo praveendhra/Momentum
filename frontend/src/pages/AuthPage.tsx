@@ -14,9 +14,8 @@ const PROVIDERS = ((import.meta.env.VITE_AUTH_PROVIDERS as string | undefined) ?
   .split(',')
   .map((p) => p.trim())
   .filter(Boolean)
-  // Google blocks its sign-in inside app web views, so the iOS app offers
-  // Sign in with Apple (native) plus email instead.
-  .filter(() => !isNative) as Provider[]
+  // In the iOS app only Google works (it opens in a system browser sheet).
+  .filter((p) => !isNative || p === 'google') as Provider[]
 
 const GoogleLogo = () => (
   <svg viewBox="0 0 48 48" className="h-5 w-5" aria-hidden>
@@ -96,7 +95,9 @@ export default function AuthPage() {
     if (provider === 'google' && GOOGLE_CLIENT_ID) {
       // Direct to Google so its screen names this site, not <ref>.supabase.co.
       try {
-        await startGoogleSignIn()
+        const msg = await startGoogleSignIn()
+        if (msg) setError(msg)
+        if (isNative) setBusy(false)
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err))
         setBusy(false)

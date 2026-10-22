@@ -5,7 +5,7 @@ The iOS app is the same React app wrapped with [Capacitor](https://capacitorjs.c
 - **Store name:** Momentum: Habits & Streaks (home-screen name: Momentum). "Momentum", "Momentum: Habit Tracker" and similar were taken.
 - **Bundle ID:** `com.praveendhra.momentum`
 - **Devices:** iPhone only, portrait
-- **Sign-in in the app:** Sign in with Apple (native sheet) and email + password. Google sign-in is web-only because Google blocks it inside app web views.
+- **Sign-in in the app:** Sign in with Apple (native sheet), Google and email + password. Google blocks sign-in inside app web views, so the app opens it in a system browser sheet (ASWebAuthenticationSession, `ios/App/App/AppDelegate.swift`); the website forwards Google's response back to `com.praveendhra.momentum://`.
 - **Account deletion:** Settings → Danger zone (required by App Store rule 5.1.1(v)).
 - **Privacy policy:** https://momentum.praveendhra.com/privacy.html
 - **Support:** https://momentum.praveendhra.com/support.html

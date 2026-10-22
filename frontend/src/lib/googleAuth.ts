@@ -8,13 +8,26 @@
  * the ID token to Supabase with signInWithIdToken. A hashed nonce ties the token
  * to this browser and a random `state` guards against CSRF.
  */
+import { registerPlugin } from '@capacitor/core'
 import { supabase } from './supabase'
+import { isNative, WEB_URL } from './native'
+
+/**
+ * In the iOS app Google won't sign in inside the web view, so Google's page
+ * opens in a system browser sheet (ASWebAuthenticationSession, see
+ * ios/App/App/AppDelegate.swift). Google redirects to the website as usual; the
+ * website sees a state starting with "app." and forwards the response to
+ * com.praveendhra.momentum://google, which closes the sheet and returns here.
+ */
+const WebAuth = registerPlugin<{ start(o: { url: string; callbackScheme: string }): Promise<{ url: string }> }>('WebAuth')
+const APP_SCHEME = 'com.praveendhra.momentum'
+const APP_STATE_PREFIX = 'app.'
 
 export const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined
 const KEY = 'momentum.google-oidc'
 const ERROR_KEY = 'momentum.google-oidc-error'
 
-const redirectUri = () => `${window.location.origin}${import.meta.env.BASE_URL}`
+const redirectUri = () => (isNative ? WEB_URL : `${window.location.origin}${import.meta.env.BASE_URL}`)
 
 function store(key: string, value: string | null) {
   try {
@@ -31,9 +44,10 @@ async function sha256Hex(text: string): Promise<string> {
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
-export async function startGoogleSignIn(): Promise<void> {
+/** Returns an error message, or null once signed in (or when the page is leaving for Google). */
+export async function startGoogleSignIn(): Promise<string | null> {
   if (!GOOGLE_CLIENT_ID) throw new Error('Google sign-in is not configured')
-  const state = crypto.randomUUID()
+  const state = (isNative ? APP_STATE_PREFIX : '') + crypto.randomUUID()
   const nonce = crypto.randomUUID()
   store(KEY, JSON.stringify({ state, nonce }))
   const params = new URLSearchParams({
@@ -45,7 +59,26 @@ export async function startGoogleSignIn(): Promise<void> {
     state,
     prompt: 'select_account',
   })
-  window.location.assign(`https://accounts.google.com/o/oauth2/v2/auth?${params}`)
+  const url = `https://accounts.google.com/o/oauth2/v2/auth?${params}`
+  if (!isNative) {
+    window.location.assign(url)
+    return null
+  }
+
+  store(KEY, null)
+  let callback: string
+  try {
+    callback = (await WebAuth.start({ url, callbackScheme: APP_SCHEME })).url
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    return msg === 'canceled' ? null : `Google sign-in failed: ${msg}`
+  }
+  const back = new URLSearchParams(callback.split('#')[1] ?? '')
+  if (back.get('error')) return back.get('error') === 'access_denied' ? null : `Google sign-in failed: ${back.get('error')}`
+  const token = back.get('id_token')
+  if (!token || back.get('state') !== state || !supabase) return 'Google sign-in could not be verified. Please try again.'
+  const { error } = await supabase.auth.signInWithIdToken({ provider: 'google', token, nonce })
+  return error ? error.message : null
 }
 
 /** Error from the last Google round trip, shown once on the sign-in page. */
@@ -64,6 +97,11 @@ export function consumeGoogleRedirect(): void {
   const hash = window.location.hash.slice(1)
   if (!hash.includes('state=') || (!hash.includes('id_token=') && !hash.includes('error='))) return
   const params = new URLSearchParams(hash)
+  // Started in the iOS app: hand the response back to the app's sign-in sheet.
+  if (params.get('state')?.startsWith(APP_STATE_PREFIX)) {
+    window.location.replace(`${APP_SCHEME}://google#${hash}`)
+    return
+  }
   history.replaceState(null, '', `${window.location.pathname}#/`)
 
   const saved = load(KEY)
