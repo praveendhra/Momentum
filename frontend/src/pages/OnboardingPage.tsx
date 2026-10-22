@@ -4,15 +4,13 @@ import { useActivities } from '../hooks/queries'
 import { useAuth } from '../hooks/useAuth'
 import PresetPicker from '../components/PresetPicker'
 import ActivityForm from '../components/ActivityForm'
-import { Spinner, ErrorNote } from '../components/ui'
-import { useSampleData } from '../hooks/useSampleData'
+import { Spinner } from '../components/ui'
 
 export default function OnboardingPage() {
   const navigate = useNavigate()
   const { signOut, mode } = useAuth()
   const { data, isLoading } = useActivities()
   const [custom, setCustom] = useState(false)
-  const sample = useSampleData()
 
   if (isLoading) return <div className="min-h-screen bg-slate-900 flex items-center justify-center"><Spinner /></div>
   if (data?.length) return <Navigate to="/" replace />
@@ -38,12 +36,7 @@ export default function OnboardingPage() {
                 <button className="text-slate-400 hover:text-white" onClick={() => setCustom(true)}>
                   Or create your own activity →
                 </button>
-                <button className="text-emerald-400 hover:text-emerald-300 disabled:opacity-50" disabled={!!sample.busy}
-                  onClick={async () => { await sample.load(); navigate('/', { replace: true }) }}>
-                  {sample.busy ? 'Loading sample data…' : 'Just exploring? Load sample data →'}
-                </button>
               </div>
-              <div className="mt-2"><ErrorNote error={sample.error} /></div>
             </>
           )}
         </div>

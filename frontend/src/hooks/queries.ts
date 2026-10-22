@@ -29,7 +29,7 @@ export const useLogs = (filters: LogFilters) =>
   useQuery({ queryKey: qk.logs(filters), queryFn: () => store.listLogs(filters) })
 
 /** Every log for the signed-in user; all stats are derived from this. */
-const useAllLogs = () => useQuery({ queryKey: qk.allLogs, queryFn: () => store.allLogs() })
+export const useAllLogs = () => useQuery({ queryKey: qk.allLogs, queryFn: () => store.allLogs() })
 
 function useDerived<T>(fn: (logs: ActivityLog[], acts: Activity[]) => T) {
   const logs = useAllLogs()

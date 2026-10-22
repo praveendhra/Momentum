@@ -93,7 +93,7 @@ The build appears in App Store Connect → TestFlight after Apple processes it (
 
 **Header and Search Results assets:** `frontend/ios/fastlane/creative/` holds the header (3840 × 1646) and search results (3840 × 2560) images plus the HTML they're rendered from. fastlane can't upload these; they're added on the version page under Header and Search Results (Upload), and save immediately.
 
-**Review notes:** Sign in with Apple works for reviewers too, but also give Apple a demo account (email + password) with sample data loaded, e.g. create `appreview@…`, sign in, Activities → Load sample data. Mention: "Sign in with the demo account. Account deletion is in Settings → Danger zone."
+**Review notes:** Sign in with Apple works for reviewers too, but also give Apple a demo account (email + password) with a few habits and some days of logs, e.g. create `appreview@…`, sign in, add a few habits and log them. Mention: "Sign in with the demo account. Account deletion is in Settings → Danger zone."
 
 ## App Privacy answers (App Store Connect → App Privacy)
 - Data collection: **Yes**

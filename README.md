@@ -39,7 +39,7 @@ Momentum is built on a different idea: **progress is the pile of days you showed
 
 ### Start in under a minute
 
-Pick what you want to build up from a curated set of activities across four areas (Workout, Habits, Skill Practice, Mood & Journal), or create your own. Want to look around first? **Load sample data** and see four months of realistic history instantly.
+Pick what you want to build up from a curated set of activities across four areas (Workout, Habits, Skill Practice, Mood & Journal), or create your own.
 
 <img src="docs/screenshots/onboarding.png" alt="Onboarding: choose activities to track" width="800" />
 
@@ -192,7 +192,7 @@ To add **GitHub** (or another provider):
 frontend/          React PWA (the app)
   src/pages/       Dashboard, History, Activities, Settings, Auth, Onboarding
   src/components/  Heatmap, log + day-detail modals, activity cards, emoji picker…
-  src/lib/         stats, heatmap, units, preferences, sample data, quotes
+  src/lib/         stats, heatmap, units, preferences, quotes
 supabase/          schema.sql, cron.sql, Edge Function for emails
 backend/           optional FastAPI service (not used by the live deployment)
 docs/screenshots/  images used in this README
