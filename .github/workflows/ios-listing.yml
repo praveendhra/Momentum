@@ -60,7 +60,7 @@ jobs:
         run: |
           set -o pipefail
           fastlane listing submit:${{ github.event.inputs.submit }} 2>&1 | tee "$RUNNER_TEMP/deliver.log" || {
-            grep -E "\[!\]|Error|error|ERROR|rejected|invalid" "$RUNNER_TEMP/deliver.log" | sed 's/\x1b\[[0-9;]*m//g' \
-              | awk '!seen[$0]++' | head -10 | while IFS= read -r l; do echo "::error::${l:0:900}"; done
+            sed 's/\x1b\[[0-9;]*m//g' "$RUNNER_TEMP/deliver.log" | grep -E "^\[[0-9:]+\]" | grep -v "^\[[0-9:]+\]: *$" \
+              | tail -12 | while IFS= read -r l; do echo "::error::${l:0:900}"; done
             exit 1
           }
