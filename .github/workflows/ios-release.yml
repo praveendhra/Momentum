@@ -118,10 +118,7 @@ jobs:
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/Momentum.xcarchive" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="-" \
-            CODE_SIGNING_REQUIRED=NO \
-            PROVISIONING_PROFILE_SPECIFIER="" \
+            CODE_SIGNING_ALLOWED=NO \
             MARKETING_VERSION="${{ steps.ver.outputs.version }}" \
             CURRENT_PROJECT_VERSION="${{ steps.ver.outputs.build }}" \
             | tee "$RUNNER_TEMP/archive.log" | grep -E "error:|warning: .*sign|ARCHIVE (SUCCEEDED|FAILED)" || true
@@ -134,7 +131,7 @@ jobs:
             exit 1
           fi
 
-      # The archive above is only ad-hoc signed (App Store signing at archive time
+      # The archive above is unsigned (App Store signing at archive time
       # needs a registered device). Export re-signs it for the App Store with
       # Xcode's cloud-managed distribution certificate; no devices needed.
       - name: Export (App Store signing)
