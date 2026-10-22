@@ -117,13 +117,11 @@ jobs:
             -project App.xcodeproj -scheme App -configuration Release \
             -destination 'generic/platform=iOS' \
             -archivePath "$RUNNER_TEMP/Momentum.xcarchive" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath "$ASC_KEY_PATH" \
-            -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            CODE_SIGN_STYLE=Automatic \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            PROVISIONING_PROFILE_SPECIFIER="" \
             MARKETING_VERSION="${{ steps.ver.outputs.version }}" \
             CURRENT_PROJECT_VERSION="${{ steps.ver.outputs.build }}" \
             | tee "$RUNNER_TEMP/archive.log" | grep -E "error:|warning: .*sign|ARCHIVE (SUCCEEDED|FAILED)" || true
@@ -136,10 +134,14 @@ jobs:
             exit 1
           fi
 
-      - name: Export and upload to App Store Connect
+      # The archive above is only ad-hoc signed (App Store signing at archive time
+      # needs a registered device). Export re-signs it for the App Store with
+      # Xcode's cloud-managed distribution certificate; no devices needed.
+      - name: Export (App Store signing)
         working-directory: frontend/ios
         run: |
-          sed "s/TEAM_ID_PLACEHOLDER/$APPLE_TEAM_ID/" ExportOptions.plist > "$RUNNER_TEMP/ExportOptions.plist"
+          sed -e "s/TEAM_ID_PLACEHOLDER/$APPLE_TEAM_ID/" -e "s#<string>upload</string>#<string>export</string>#" ExportOptions.plist > "$RUNNER_TEMP/ExportOptions.plist"
+          set -o pipefail
           xcodebuild -exportArchive \
             -archivePath "$RUNNER_TEMP/Momentum.xcarchive" \
             -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
@@ -147,13 +149,37 @@ jobs:
             -allowProvisioningUpdates \
             -authenticationKeyPath "$ASC_KEY_PATH" \
             -authenticationKeyID "$ASC_KEY_ID" \
-            -authenticationKeyIssuerID "$ASC_ISSUER_ID" 2>&1 | tee "$RUNNER_TEMP/export.log"
-          status=${PIPESTATUS[0]}
-          if [ "$status" != 0 ]; then
-            grep -E "error|Error" "$RUNNER_TEMP/export.log" | awk '!seen[$0]++' | head -8 \
-              | while IFS= read -r line; do echo "::error::${line:0:900}"; done
-            exit "$status"
-          fi
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" 2>&1 | tee "$RUNNER_TEMP/export.log" || {
+              grep -E "error|Error" "$RUNNER_TEMP/export.log" | awk '!seen[$0]++' | head -8 \
+                | while IFS= read -r line; do echo "::error::${line:0:900}"; done
+              exit 1
+            }
+          ls -la "$RUNNER_TEMP/export"
+
+      - name: Check signature and entitlements
+        run: |
+          IPA=$(ls "$RUNNER_TEMP"/export/*.ipa | head -1)
+          rm -rf "$RUNNER_TEMP/ipa" && mkdir "$RUNNER_TEMP/ipa" && unzip -q "$IPA" -d "$RUNNER_TEMP/ipa"
+          APP=$(ls -d "$RUNNER_TEMP"/ipa/Payload/*.app)
+          codesign -dv "$APP" 2>&1 | grep -E "Authority=|TeamIdentifier" | while read -r l; do echo "::notice::$l"; done
+          ENT=$(codesign -d --entitlements :- "$APP" 2>/dev/null)
+          echo "$ENT"
+          echo "$ENT" | grep -q "com.apple.developer.applesignin" \
+            && echo "::notice::Sign in with Apple entitlement present" \
+            || { echo "::error::Sign in with Apple entitlement missing from the signed app"; exit 1; }
+          echo "IPA=$IPA" >> "$GITHUB_ENV"
+
+      - name: Upload to App Store Connect
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys
+          cp "$ASC_KEY_PATH" ~/.appstoreconnect/private_keys/
+          set -o pipefail
+          xcrun altool --upload-app --type ios --file "$IPA" \
+            --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID" 2>&1 | tee "$RUNNER_TEMP/upload.log" || {
+              grep -iE "error|fail" "$RUNNER_TEMP/upload.log" | awk '!seen[$0]++' | head -8 \
+                | while IFS= read -r line; do echo "::error::${line:0:900}"; done
+              exit 1
+            }
 
       - name: Summary
         run: |
@@ -165,5 +191,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: xcode-logs
-          path: ${{ runner.temp }}/archive.log
+          path: |
+            ${{ runner.temp }}/archive.log
+            ${{ runner.temp }}/export.log
+            ${{ runner.temp }}/upload.log
           if-no-files-found: ignore
