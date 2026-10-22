@@ -30,7 +30,7 @@ jobs:
       # Public OAuth client ID (not a secret) for Google Identity Services sign-in.
       VITE_GOOGLE_CLIENT_ID: ${{ vars.VITE_GOOGLE_CLIENT_ID || '17185534133-rv5di0vpcakcu82btkfqvg2mdd2d9cq4.apps.googleusercontent.com' }}
       # Sign in with Apple on the website (needs the Services ID com.praveendhra.momentum.web).
-      VITE_APPLE_WEB: "0"
+      VITE_APPLE_WEB: "1"
       BASE_PATH: /
     steps:
       - uses: actions/checkout@v4

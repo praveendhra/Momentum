@@ -26,7 +26,7 @@ The website uses Apple's popup and the same token exchange (no 6-month secret to
 1. developer.apple.com → Identifiers → **+** → **Services IDs** → Description `Momentum Web`, Identifier **`com.praveendhra.momentum.web`** → Register.
 2. Open it, tick **Sign In with Apple** → **Configure**: Primary App ID **com.praveendhra.momentum**; Domains **`momentum.praveendhra.com`**; Return URLs **`https://momentum.praveendhra.com/`** → Next → Done → Continue → Save.
 3. Supabase → Apple provider → **Client IDs**: `com.praveendhra.momentum,com.praveendhra.momentum.web` → Save.
-4. Turn the button on: set `VITE_APPLE_WEB: "1"` in `.github/workflows/deploy-pages.yml` (Claude can do this once steps 1–3 are done).
+4. The button is on: `VITE_APPLE_WEB: "1"` in `.github/workflows/deploy-pages.yml`. (Done 2026-10-22: App ID and Services ID configured, Supabase Client IDs set.)
 
 ### 1c. Account deletion revokes Sign in with Apple (Guideline 5.1.1(v))
 When an Apple user deletes their account in the iOS app, Apple asks them to confirm (Face ID), and the `delete-account` Edge Function revokes the app's Apple tokens before deleting the account. Setup:
