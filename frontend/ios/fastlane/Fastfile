@@ -1,0 +1,52 @@
+# CI-only signing helpers for the GitHub Actions iOS release (no Mac needed).
+#
+# `signing` creates a short-lived Apple Distribution certificate (private key
+# stays in a temporary CI keychain) and a matching App Store provisioning
+# profile. `revoke` deletes that certificate when the build is done, so runs
+# never pile up against Apple's certificate limit. Builds already uploaded to
+# App Store Connect are unaffected by the revocation.
+
+default_platform(:ios)
+
+APP_ID = 'com.praveendhra.momentum'
+KEYCHAIN = 'momentum-ci.keychain-db'
+KEYCHAIN_PASSWORD = 'momentum-ci'
+
+def api_key!
+  app_store_connect_api_key(
+    key_id: ENV.fetch('ASC_KEY_ID'),
+    issuer_id: ENV.fetch('ASC_ISSUER_ID'),
+    key_filepath: ENV.fetch('ASC_KEY_PATH'),
+  )
+end
+
+platform :ios do
+  lane :signing do
+    key = api_key!
+    create_keychain(name: KEYCHAIN, password: KEYCHAIN_PASSWORD, default_keychain: true,
+                    unlock: true, timeout: 3600, lock_when_sleeps: false)
+    out = ENV.fetch('RUNNER_TEMP')
+    get_certificates(api_key: key, development: false, generate_apple_certs: true,
+                     keychain_path: File.expand_path("~/Library/Keychains/#{KEYCHAIN}"),
+                     keychain_password: KEYCHAIN_PASSWORD, output_path: out)
+    cert_id = lane_context[SharedValues::CERT_CERTIFICATE_ID]
+    get_provisioning_profile(api_key: key, app_identifier: APP_ID, cert_id: cert_id, force: true,
+                             output_path: out, filename: 'Momentum_AppStore.mobileprovision')
+    File.open(ENV.fetch('GITHUB_ENV'), 'a') do |f|
+      f.puts "CI_CERT_ID=#{cert_id}"
+      f.puts "CI_PROFILE_UUID=#{lane_context[SharedValues::SIGH_UUID]}"
+      f.puts "CI_PROFILE_NAME=#{lane_context[SharedValues::SIGH_NAME]}"
+    end
+  end
+
+  lane :revoke do
+    api_key!
+    id = ENV['CI_CERT_ID'].to_s
+    next if id.empty?
+    cert = Spaceship::ConnectAPI::Certificate.all.find { |c| c.id == id }
+    if cert
+      cert.delete!
+      UI.success("Revoked temporary certificate #{id}")
+    end
+  end
+end
