@@ -20,5 +20,5 @@
   "parentalControls": false,
   "ageAssurance": false,
   "advertising": false,
-  "healthOrWellnessTopics": true
+  "healthOrWellnessTopics": false
 }
