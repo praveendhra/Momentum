@@ -21,6 +21,15 @@ App Store Connect → Apps → **+** → New App:
 - **Supabase** → Authentication → Sign In / Providers → **Apple** → enable, and put `com.praveendhra.momentum` in **Client IDs**. Leave the secret empty (it's only needed for Apple sign-in on the website). Save.
 - **Apple:** nothing to do by hand. The app's `App.entitlements` requests the capability and automatic signing adds it to the App ID during the CI build. If the build complains, enable it manually: developer.apple.com → Identifiers → com.praveendhra.momentum → check **Sign In with Apple** → Save.
 
+### 1c. Account deletion revokes Sign in with Apple (Guideline 5.1.1(v))
+When an Apple user deletes their account in the iOS app, Apple asks them to confirm (Face ID), and the `delete-account` Edge Function revokes the app's Apple tokens before deleting the account. Setup:
+1. developer.apple.com → Certificates, IDs & Profiles → **Keys** → **+** → name `Momentum SIWA`, tick **Sign in with Apple** → Configure → Primary App ID **com.praveendhra.momentum** → Save → Continue → Register. Download the `.p8` (one-time download) and note its **Key ID**.
+2. supabase.com → Account (top-right avatar) → **Access Tokens** → Generate new token (`GitHub Actions`).
+3. GitHub repo secrets: `SUPABASE_ACCESS_TOKEN`, `APPLE_SIWA_KEY_ID`, `APPLE_SIWA_KEY_P8` (full .p8 contents), and `APPLE_TEAM_ID` (same one the iOS build uses).
+4. Actions → **Deploy Supabase Edge Functions** → Run workflow. It stores the Apple secrets in Supabase and deploys `delete-account` (and `send-notifications`). It also redeploys automatically whenever `supabase/functions/` changes.
+
+Until this is deployed, Delete account still works (it falls back to the `delete_my_account()` database function); it just can't revoke Apple tokens.
+
 ### 2. Create an App Store Connect API key
 App Store Connect → Users and Access → **Integrations** → App Store Connect API → Team Keys → **+**
 - Name: `GitHub Actions` · Access: **Admin** (needed so Xcode can create the distribution certificate and profile automatically)

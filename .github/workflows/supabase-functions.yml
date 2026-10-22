@@ -1,0 +1,66 @@
+name: Deploy Supabase Edge Functions
+
+# Deploys supabase/functions/* and syncs the Apple secrets the
+# delete-account function needs.
+#
+# Repository secrets:
+#   SUPABASE_ACCESS_TOKEN   supabase.com → Account → Access Tokens
+#   APPLE_TEAM_ID           Apple Team ID (shared with the iOS workflow)
+#   APPLE_SIWA_KEY_ID       Key ID of the "Sign in with Apple" key
+#   APPLE_SIWA_KEY_P8       Contents of that key's AuthKey_XXXX.p8
+
+on:
+  push:
+    branches: [main]
+    paths: ["supabase/functions/**", ".github/workflows/supabase-functions.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-functions
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      PROJECT_REF: qcyijvnkgdznekbzccgj
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check token
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "::warning::SUPABASE_ACCESS_TOKEN secret not set; skipping deploy."
+            echo "SKIP=1" >> "$GITHUB_ENV"
+          fi
+
+      - uses: supabase/setup-cli@v1
+        if: env.SKIP != '1'
+        with:
+          version: latest
+
+      - name: Set Apple secrets for delete-account
+        if: env.SKIP != '1'
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_SIWA_KEY_ID: ${{ secrets.APPLE_SIWA_KEY_ID }}
+          APPLE_SIWA_KEY_P8: ${{ secrets.APPLE_SIWA_KEY_P8 }}
+        run: |
+          if [ -n "$APPLE_TEAM_ID" ] && [ -n "$APPLE_SIWA_KEY_ID" ] && [ -n "$APPLE_SIWA_KEY_P8" ]; then
+            # Store the key body on one line (no PEM header/footer or newlines) so it survives env parsing.
+            KEY_BODY=$(printf '%s' "$APPLE_SIWA_KEY_P8" | grep -v -- '-----' | tr -d ' \r\n')
+            printf 'APPLE_TEAM_ID=%s\nAPPLE_KEY_ID=%s\nAPPLE_PRIVATE_KEY=%s\n' \
+              "$APPLE_TEAM_ID" "$APPLE_SIWA_KEY_ID" "$KEY_BODY" > "$RUNNER_TEMP/apple.env"
+            supabase secrets set --project-ref "$PROJECT_REF" --env-file "$RUNNER_TEMP/apple.env"
+            rm -f "$RUNNER_TEMP/apple.env"
+          else
+            echo "::warning::Apple Sign in with Apple secrets not set; delete-account will skip token revocation."
+          fi
+
+      - name: Deploy functions
+        if: env.SKIP != '1'
+        run: |
+          # Both functions authenticate requests themselves.
+          supabase functions deploy delete-account --project-ref "$PROJECT_REF" --no-verify-jwt
+          supabase functions deploy send-notifications --project-ref "$PROJECT_REF" --no-verify-jwt

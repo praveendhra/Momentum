@@ -41,3 +41,21 @@ export async function signInWithApple(): Promise<string | null> {
   if (fullName) void supabase.auth.updateUser({ data: { full_name: fullName } })
   return null
 }
+
+/**
+ * Ask Apple for a fresh authorization code (Face ID / passcode) so the server
+ * can revoke this app's Sign in with Apple tokens when the account is deleted.
+ * Returns null if the user cancels or it isn't available.
+ */
+export async function appleAuthorizationCode(): Promise<string | null> {
+  if (!isNative) return null
+  try {
+    const res = await SignInWithApple.authorize({
+      clientId: 'com.praveendhra.momentum',
+      redirectURI: 'https://momentum.praveendhra.com/',
+    })
+    return res.response.authorizationCode || null
+  } catch {
+    return null
+  }
+}
