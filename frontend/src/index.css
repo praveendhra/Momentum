@@ -78,3 +78,15 @@ html body .react-activity-calendar__tooltip .react-activity-calendar__tooltip-ar
   fill: var(--tooltip-bg);
   stroke: var(--tooltip-border);
 }
+
+/* iOS Safari/WebKit date inputs: keep them the same size as other fields
+   instead of rendering taller and wider than their grid cell. */
+input[type='date'] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 2.625rem;
+}
+input[type='date']::-webkit-date-and-time-value { text-align: left; min-height: 1.5rem; }
+input[type='date']::-webkit-calendar-picker-indicator { opacity: 0.6; }

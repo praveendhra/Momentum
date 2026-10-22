@@ -41,7 +41,7 @@ export default function HistoryPage() {
       <h1 className="text-2xl font-semibold">History</h1>
 
       <Card>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 items-end">
           <select aria-label="Category" className={inputCls} value={categoryId}
             onChange={(e) => { setCategoryId(e.target.value); set({ activity_id: undefined }) }}>
             <option value="">All categories</option>
@@ -54,10 +54,16 @@ export default function HistoryPage() {
               ?.filter((a) => !categoryId || a.category_id === categoryId)
               .map((a) => <option key={a.id} value={a.id}>{a.icon} {a.name}</option>)}
           </select>
-          <input aria-label="From date" type="date" className={inputCls} value={filters.date_from ?? ''}
-            onChange={(e) => set({ date_from: e.target.value || undefined })} />
-          <input aria-label="To date" type="date" className={inputCls} value={filters.date_to ?? ''}
-            onChange={(e) => set({ date_to: e.target.value || undefined })} />
+          <label className="min-w-0">
+            <span className="block text-xs text-slate-400 mb-1">From</span>
+            <input aria-label="From date" type="date" className={`${inputCls} min-w-0`} value={filters.date_from ?? ''}
+              onChange={(e) => set({ date_from: e.target.value || undefined })} />
+          </label>
+          <label className="min-w-0">
+            <span className="block text-xs text-slate-400 mb-1">To</span>
+            <input aria-label="To date" type="date" className={`${inputCls} min-w-0`} value={filters.date_to ?? ''}
+              onChange={(e) => set({ date_to: e.target.value || undefined })} />
+          </label>
         </div>
       </Card>
 
