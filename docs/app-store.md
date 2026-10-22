@@ -91,6 +91,8 @@ The build appears in App Store Connect → TestFlight after Apple processes it (
 
 **Listing source of truth:** `frontend/ios/fastlane/metadata/` (text), `frontend/ios/fastlane/screenshots/` (6.9" iPhone, 1320 × 2868), `frontend/ios/fastlane/age_rating.json`. Pushing changes there runs **iOS App Store listing**, which uploads them. The copy below is the original draft.
 
+**Header and Search Results assets:** `frontend/ios/fastlane/creative/` holds the header (3840 × 1646) and search results (3840 × 2560) images plus the HTML they're rendered from. fastlane can't upload these; they're added on the version page under Header and Search Results (Upload), and save immediately.
+
 **Review notes:** Sign in with Apple works for reviewers too, but also give Apple a demo account (email + password) with sample data loaded, e.g. create `appreview@…`, sign in, Activities → Load sample data. Mention: "Sign in with the demo account. Account deletion is in Settings → Danger zone."
 
 ## App Privacy answers (App Store Connect → App Privacy)
