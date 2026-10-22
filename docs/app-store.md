@@ -4,7 +4,7 @@ The iOS app is the same React app wrapped with [Capacitor](https://capacitorjs.c
 
 - **Bundle ID:** `com.praveendhra.momentum`
 - **Devices:** iPhone only, portrait
-- **Sign-in in the app:** email + password. Google sign-in is web-only: Google blocks it inside app web views, and App Store rule 4.8 would then also require Sign in with Apple.
+- **Sign-in in the app:** Sign in with Apple (native sheet) and email + password. Google sign-in is web-only because Google blocks it inside app web views.
 - **Account deletion:** Settings → Danger zone (required by App Store rule 5.1.1(v)).
 - **Privacy policy:** https://momentum.praveendhra.com/privacy.html
 - **Support:** https://momentum.praveendhra.com/support.html
@@ -16,6 +16,10 @@ App Store Connect → Apps → **+** → New App:
 - Platform: iOS · Name: **Momentum** (if taken: "Momentum: Habit & Workout Log") · Language: English (U.S.)
 - Bundle ID: **com.praveendhra.momentum** (register it first under Certificates, IDs & Profiles → Identifiers → **+** → App IDs → App, if it isn't listed)
 - SKU: `momentum-ios`
+
+### 1b. Turn on Sign in with Apple
+- **Supabase** → Authentication → Sign In / Providers → **Apple** → enable, and put `com.praveendhra.momentum` in **Client IDs**. Leave the secret empty (it's only needed for Apple sign-in on the website). Save.
+- **Apple:** nothing to do by hand. The app's `App.entitlements` requests the capability and automatic signing adds it to the App ID during the CI build. If the build complains, enable it manually: developer.apple.com → Identifiers → com.praveendhra.momentum → check **Sign In with Apple** → Save.
 
 ### 2. Create an App Store Connect API key
 App Store Connect → Users and Access → **Integrations** → App Store Connect API → Team Keys → **+**
@@ -70,7 +74,7 @@ The build appears in App Store Connect → TestFlight after Apple processes it (
 
 **Screenshots (6.9" iPhone, 1320 × 2868):** `docs/app-store/1-dashboard.png` … `5-history.png`
 
-**Review notes:** give Apple a demo account (email + password) with sample data loaded, e.g. create `appreview@…`, sign in, Activities → Load sample data. Mention: "Sign in with the demo account. Account deletion is in Settings → Danger zone."
+**Review notes:** Sign in with Apple works for reviewers too, but also give Apple a demo account (email + password) with sample data loaded, e.g. create `appreview@…`, sign in, Activities → Load sample data. Mention: "Sign in with the demo account. Account deletion is in Settings → Danger zone."
 
 ## App Privacy answers (App Store Connect → App Privacy)
 - Data collection: **Yes**

@@ -9,9 +9,11 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "build:native": "tsc -b && CAP_BUILD=1 vite build",
-    "ios:sync": "npm run build:native && cap sync ios"
+    "ios:sync": "npm run build:native && cap sync ios",
+    "postinstall": "patch-package"
   },
   "dependencies": {
+    "@capacitor-community/apple-sign-in": "^7.1.0",
     "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.5.3",
     "@capacitor/ios": "^8.5.3",
@@ -38,6 +40,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
+    "patch-package": "^8.0.1",
     "tailwindcss": "^4.3.0",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
