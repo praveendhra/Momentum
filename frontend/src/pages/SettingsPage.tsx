@@ -6,6 +6,7 @@ import { browserTimezone, type Preferences } from '../lib/preferences'
 import { supabase } from '../lib/supabase'
 import TimezonePicker from '../components/TimezonePicker'
 import { zoneLabel } from '../lib/timezones'
+import DeleteAccount from '../components/DeleteAccount'
 
 function Segmented<T extends string | number>({
   value,
@@ -219,6 +220,13 @@ export default function SettingsPage() {
             </button>
           </Row>
         </Card>
+      )}
+
+      {mode === 'supabase' && (
+        <section className="rounded-2xl border border-rose-500/30 bg-rose-500/5 p-5">
+          <h3 className="text-base font-semibold text-rose-300 mb-4">Danger zone</h3>
+          <DeleteAccount />
+        </section>
       )}
     </div>
   )
