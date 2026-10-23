@@ -137,7 +137,10 @@ jobs:
             }
           keychain add-certificates
           # Pick the App Store profile for this bundle ID.
-          for f in "$HOME/Library/MobileDevice/Provisioning Profiles/"*.mobileprovision; do
+          # Codemagic/Xcode keep profiles in one of these, depending on the Xcode version.
+          for f in "$HOME/Library/MobileDevice/Provisioning Profiles/"*.mobileprovision \
+                   "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/"*.mobileprovision; do
+            [ -f "$f" ] || continue
             security cms -D -i "$f" > "$RUNNER_TEMP/profile.plist" 2>/dev/null || continue
             appid=$(plutil -extract Entitlements.application-identifier raw "$RUNNER_TEMP/profile.plist")
             case "$appid" in *.com.praveendhra.momentum) ;; *) continue ;; esac
@@ -147,6 +150,14 @@ jobs:
             break
           done
           security find-identity -v -p codesigning | grep "Apple Distribution" | head -1 | sed 's/^/::notice::/'
+          if ! grep -q CI_PROFILE_UUID "$GITHUB_ENV"; then
+            echo "::error::No App Store profile for com.praveendhra.momentum was downloaded"
+            grep -iE "profile" "$RUNNER_TEMP/signing.log" | head -6 | while IFS= read -r l; do echo "::error::${l:0:900}"; done
+            exit 1
+          fi
+          # The profile must carry Sign in with Apple, or the archive fails.
+          grep -q "com.apple.developer.applesignin" "$RUNNER_TEMP/profile.plist" \
+            || { echo "::error::The App Store profile lacks Sign in with Apple"; exit 1; }
 
       - name: Archive
         working-directory: frontend/ios/App
