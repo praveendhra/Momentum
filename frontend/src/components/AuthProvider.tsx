@@ -4,6 +4,7 @@ import { AuthContext, type AuthUser } from '../hooks/useAuth'
 import { authMode, supabase } from '../lib/supabase'
 import { LOCAL_USER_ID } from '../lib/store'
 import { Modal, ErrorNote, btnPrimary, inputCls } from './ui'
+import { cancelReminders } from '../lib/reminders'
 
 const LOCAL_USER: AuthUser = { id: LOCAL_USER_ID, email: null }
 
@@ -43,6 +44,7 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       mode: authMode,
       signOut: async () => {
+        await cancelReminders().catch(() => {})
         if (supabase) await supabase.auth.signOut()
         setUser(supabase ? null : LOCAL_USER)
       },
