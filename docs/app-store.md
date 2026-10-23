@@ -53,6 +53,7 @@ GitHub → praveendhra/Momentum → Settings → Secrets and variables → Actio
 | `ASC_KEY_ID` | API Key ID |
 | `ASC_ISSUER_ID` | API Issuer ID |
 | `ASC_KEY_P8` | Entire contents of `AuthKey_XXXXXXXXXX.p8`, including the BEGIN/END lines |
+| `IOS_CERTIFICATE_PRIVATE_KEY` | Private key of the Apple Distribution certificate, the same `~/ios_cert_key` Task Tracker uses: `gh secret set IOS_CERTIFICATE_PRIVATE_KEY -R praveendhra/Momentum < ~/ios_cert_key`. Builds reuse that one certificate; never revoke it while a build is in review, or Apple rejects it with ITMS-90035 Invalid Signature. |
 
 ## Shipping a build
 GitHub → Actions → **iOS build → TestFlight** → Run workflow → enter the version (e.g. `1.0.0`).

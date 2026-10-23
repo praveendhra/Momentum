@@ -110,9 +110,43 @@ jobs:
           printf '%s' "${{ secrets.ASC_KEY_P8 }}" > "$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8"
           echo "ASC_KEY_PATH=$RUNNER_TEMP/keys/AuthKey_${ASC_KEY_ID}.p8" >> "$GITHUB_ENV"
 
-      - name: Temporary App Store certificate + profile
-        working-directory: frontend/ios
-        run: fastlane signing
+      # Sign with a long-lived Apple Distribution certificate. Its private key is
+      # the IOS_CERTIFICATE_PRIVATE_KEY secret (the same one Task Tracker uses), so
+      # every run reuses the same certificate instead of creating and revoking
+      # one. A revoked certificate makes Apple reject the build at review time
+      # (ITMS-90035 Invalid Signature).
+      - name: Signing certificate and App Store profile
+        env:
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          APP_STORE_CONNECT_KEY_IDENTIFIER: ${{ secrets.ASC_KEY_ID }}
+          APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.ASC_KEY_P8 }}
+          CERTIFICATE_PRIVATE_KEY: ${{ secrets.IOS_CERTIFICATE_PRIVATE_KEY }}
+        run: |
+          if [ -z "$CERTIFICATE_PRIVATE_KEY" ]; then
+            echo "::error::Missing repository secret IOS_CERTIFICATE_PRIVATE_KEY (see docs/app-store.md)."
+            exit 1
+          fi
+          pip3 install --break-system-packages -q codemagic-cli-tools || pip3 install -q codemagic-cli-tools
+          keychain initialize
+          app-store-connect fetch-signing-files com.praveendhra.momentum \
+            --type IOS_APP_STORE \
+            --certificate-key=@env:CERTIFICATE_PRIVATE_KEY \
+            --create 2>&1 | tee "$RUNNER_TEMP/signing.log" || {
+              grep -iE "error|fail" "$RUNNER_TEMP/signing.log" | head -8 | while IFS= read -r l; do echo "::error::${l:0:900}"; done
+              exit 1
+            }
+          keychain add-certificates
+          # Pick the App Store profile for this bundle ID.
+          for f in "$HOME/Library/MobileDevice/Provisioning Profiles/"*.mobileprovision; do
+            security cms -D -i "$f" > "$RUNNER_TEMP/profile.plist" 2>/dev/null || continue
+            appid=$(plutil -extract Entitlements.application-identifier raw "$RUNNER_TEMP/profile.plist")
+            case "$appid" in *.com.praveendhra.momentum) ;; *) continue ;; esac
+            plutil -extract ProvisionedDevices raw "$RUNNER_TEMP/profile.plist" >/dev/null 2>&1 && continue
+            echo "CI_PROFILE_UUID=$(plutil -extract UUID raw "$RUNNER_TEMP/profile.plist")" >> "$GITHUB_ENV"
+            echo "::notice::Profile $(plutil -extract Name raw "$RUNNER_TEMP/profile.plist")"
+            break
+          done
+          security find-identity -v -p codesigning | grep "Apple Distribution" | head -1 | sed 's/^/::notice::/'
 
       - name: Archive
         working-directory: frontend/ios/App
@@ -125,7 +159,6 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             CODE_SIGN_IDENTITY="Apple Distribution" \
             PROVISIONING_PROFILE_SPECIFIER="$CI_PROFILE_UUID" \
-            OTHER_CODE_SIGN_FLAGS="--keychain $HOME/Library/Keychains/momentum-ci.keychain-db" \
             MARKETING_VERSION="${{ steps.ver.outputs.version }}" \
             CURRENT_PROJECT_VERSION="${{ steps.ver.outputs.build }}" \
             | tee "$RUNNER_TEMP/archive.log" | grep -E "error:|warning: .*sign|ARCHIVE (SUCCEEDED|FAILED)" || true
@@ -190,11 +223,6 @@ jobs:
                 | while IFS= read -r line; do echo "::error::${line:0:900}"; done
               exit 1
             }
-
-      - name: Revoke temporary certificate
-        if: always() && env.CI_CERT_ID != ''
-        working-directory: frontend/ios
-        run: fastlane revoke
 
       - name: Summary
         run: |
