@@ -1,4 +1,7 @@
+import { useMemo } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { localDate } from '../lib/format'
+import type { TodayProgress } from '../lib/reminders'
 import { store, type ActivityInput, type ActivityPatch, type LogFilters, type LogPatch } from '../lib/store'
 import { CATEGORIES, PRESETS } from '../lib/catalog'
 import * as stats from '../lib/stats'
@@ -104,4 +107,16 @@ export function useDeleteActivity() {
     mutationFn: (id: string) => store.deleteActivity(id),
     onSuccess: () => Promise.all([qc.invalidateQueries({ queryKey: qk.activities }), qc.invalidateQueries({ queryKey: ['logs'] })]),
   })
+}
+
+/** How many active activities have a log on `day` (today by default). */
+export function useTodayProgress(day: string = localDate()): TodayProgress | null {
+  const { data: activities } = useActivities()
+  const { data: logs } = useAllLogs()
+  return useMemo(() => {
+    if (!activities || !logs) return null
+    const active = activities.filter((a) => a.is_active)
+    const loggedToday = new Set(logs.filter((l) => l.logged_date === day).map((l) => l.activity_id))
+    return { done: active.filter((a) => loggedToday.has(a.id)).length, total: active.length }
+  }, [activities, logs, day])
 }

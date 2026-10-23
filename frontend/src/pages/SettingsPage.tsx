@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { usePreferences } from '../hooks/usePreferences'
 import { useAuth } from '../hooks/useAuth'
 import { Card, ErrorNote, inputCls } from '../components/ui'
@@ -7,6 +7,8 @@ import { supabase } from '../lib/supabase'
 import TimezonePicker from '../components/TimezonePicker'
 import { zoneLabel } from '../lib/timezones'
 import DeleteAccount from '../components/DeleteAccount'
+import { useTodayProgress } from '../hooks/queries'
+import { REMINDER_HOURS, reminderPermission, remindersEnabled, remindersSupported, setRemindersEnabled } from '../lib/reminders'
 
 function Segmented<T extends string | number>({
   value,
@@ -69,6 +71,50 @@ function Toggle({ checked, onChange, label, disabled }: { checked: boolean; onCh
 
 const hourLabel = (h: number) =>
   new Date(2000, 0, 1, h).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+
+const hour12 = (h: number) => `${h % 12 || 12} ${h < 12 ? 'AM' : 'PM'}`
+
+/** iOS app only: the 3 PM / 7 PM / 10 PM "log your day" notifications. */
+function PhoneReminders() {
+  const today = useTodayProgress()
+  const [on, setOn] = useState(remindersEnabled)
+  const [blocked, setBlocked] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    if (!remindersSupported) return
+    void reminderPermission().then((p) => setBlocked(p === 'denied')).catch(() => {})
+  }, [])
+
+  if (!remindersSupported) return null
+
+  async function toggle(next: boolean) {
+    setBusy(true)
+    try {
+      const active = await setRemindersEnabled(next, today)
+      setOn(next)
+      setBlocked(next && !active)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Card title="Phone reminders">
+      <Row
+        title="Log reminders"
+        desc={`A nudge at ${REMINDER_HOURS.map(hour12).join(', ').replace(/, ([^,]*)$/, ' and $1')} to log your day. Skipped once everything's done.`}
+      >
+        <Toggle label="Log reminders" checked={on && !blocked} disabled={busy} onChange={toggle} />
+      </Row>
+      {on && blocked && (
+        <p className="text-sm text-amber-300 mt-3">
+          Notifications are turned off for Momentum. Turn them on in the iPhone Settings app → Notifications → Momentum.
+        </p>
+      )}
+    </Card>
+  )
+}
 
 export default function SettingsPage() {
   const { prefs, timezone, save, loaded } = usePreferences()
@@ -161,6 +207,8 @@ export default function SettingsPage() {
         </div>
         <p className="text-xs text-slate-500 mt-4">Switching units converts what you see. Your logged history doesn't change.</p>
       </Card>
+
+      <PhoneReminders />
 
       <Card title="Email notifications">
         {emailOff && (

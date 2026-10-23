@@ -93,7 +93,7 @@ History lists everything, grouped by day and filterable by category, activity an
 
 ### Settings, light mode and email nudges
 
-Light / dark / system theme; kg or lb, km or mi, L or fl oz; week start; a searchable time-zone picker; and optional emails: a **daily reminder** at the hour you pick (only sent if you haven't logged anything yet) and a **Sunday weekly summary**.
+Light / dark / system theme; kg or lb, km or mi, L or fl oz; week start; a searchable time-zone picker; and optional emails: a **daily reminder** at the hour you pick (only sent if you haven't logged anything yet) and a **Sunday weekly summary**. In the iPhone app, **log reminders** arrive at 3 PM, 7 PM and 10 PM, and stop for the day once everything's logged.
 
 <p>
 <img src="docs/screenshots/dashboard-light.png" alt="Dashboard in light mode" width="560" />
@@ -127,6 +127,7 @@ It's a fully responsive, installable PWA: add it to your home screen from the br
 - **No app server.** The browser talks to Supabase directly with the public (publishable) key. **Row-level security** policies in `supabase/schema.sql` guarantee each user can only read and write their own rows, so the key being public is safe by design.
 - **Stats run in the browser.** Heatmap, streaks (daily and weekly), personal records, milestones and mood correlations are computed client-side from your logs (`frontend/src/lib/stats.ts`, `activityStats.ts`, `heatmap.ts`). That keeps the database simple and the app fast.
 - **Metric under the hood.** Everything is stored in metric; your unit preferences only change what you see and type (`lib/units.ts`).
+- **Phone reminders.** The iOS app schedules local notifications (`@capacitor/local-notifications`, `frontend/src/lib/reminders.ts`) for 3 PM, 7 PM and 10 PM a week ahead, and reschedules them whenever the app opens or a log changes. No push server or APNs key is involved.
 - **Emails.** An hourly `pg_cron` job calls the `send-notifications` Edge Function, which sends due reminders and summaries through Resend. A `notification_log` table makes sure each email goes out at most once.
 - **Free to run.** GitHub Pages + Supabase free tier + Resend free tier.
 

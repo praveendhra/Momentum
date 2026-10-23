@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import ReminderSync from './ReminderSync'
 
 const NAV = [
   { to: '/', label: 'Dashboard', icon: '▦', end: true },
@@ -49,6 +50,7 @@ export default function Layout() {
         </div>
       </header>
 
+      <ReminderSync />
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <Outlet />
       </main>
